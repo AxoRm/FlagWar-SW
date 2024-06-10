@@ -1,0 +1,25 @@
+name: ${artifactId}
+main: ${groupId}.${artifactId}
+version: ${project.version}
+api-version: ${project.bukkitAPIVersion}
+
+authors:
+    - Shade / Zren (CellWar, Towny)
+    - ElgarL (TownyAdvanced)
+    - LlmDl (TownyAdvanced)
+    - TheFlagCourier (FlagWar)
+    - Various Contributors
+
+website: ${organization.url}
+
+prefix: FlagWar
+
+description: ${description}
+
+folia-supported: true
+
+softdepend:
+    - HolographicDisplays
+
+depend:
+    - Towny

@@ -1,0 +1,72 @@
+==================================================
+ FlagWar
+ Copyright © 2011-2012 Chris Holland (Aka. Shade [Bukkit], Zren [GitHub])
+ Copyright © 2012-2022 TownyAdvanced & Copyright © 2020-2022 Various Contributors
+--------------------------------------------------
+
+FlagWar is licensed under the Apache License, Version 2.0. The full legal text is available to
+read in the LICENSE file.
+Copies of the Flag War source code, if not provided to you, are available on GitHub.
+Source Code: https://github.com/TownyAdvanced/FlagWar/blob/main/LICENSE
+
+FlagWar originally developed under the title "CellWar", then later incorporated into Towny, by Chris Holland.
+(https://github.com/Zren/CellWar | https://github.com/Zren/Towny)
+Towny has developed and maintained by TownyAdvanced since 2011. (https://github.com/TownyAdvanced/Towny)
+
+Any prior code found on the com.palmergames.* classpath remains under previous copyrights, and
+Towny's Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+[CC BY-ND-NC 3.0] (https://creativecommons.org/licenses/by-nc-nd/3.0/).
+
+Portions of code submitted under Towny's Contributor License Agreement remain copyright TownyAdvanced.
+Contributors to the FlagWar repository retain copyright over their submissions, subject to the terms of the project's
+aforementioned License (Apache-2.0).
+
+==================================================
+3rd Party Libraries and Works
+Notices for libraries and other works incorporated into FlagWar from outside sources.
+--------------------------------------------------
+
+// General Functionality //
+
+/ Paper API (API, Hard Dependency) /
+Paper, as a grandchild fork of the Bukkit API, is primarily licensed under the terms of the GNU General Public License,
+version 3. Patches made by the Paper team may be licensed either under the GPL or the more permissive MIT license.
+See: https://github.com/PaperMC/Paper/blob/master/LICENSE.md
+
+/ Towny (API, Hard Dependency) /
+Towny is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 Unported License.
+Full License: https://github.com/TownyAdvanced/Towny/blob/master/LICENSE.MD
+Source Code: https://github.com/TownyAdvanced/Towny/
+Copyright © 2011-2012 Chris Holland
+Copyright © 2012-2022 TownyAdvanced
+
+/ HolographicDisplays (Soft Dependency) /
+HolographicDisplays is licensed under the GNU General Public License Version 3.0, or any later version.
+Full License: https://github.com/filoghost/HolographicDisplays/blob/master/LICENSE.txt
+Source Code: https://github.com/filoghost/HolographicDisplays/
+Copyright © 2014-2022 filoghost
+
+// Annotations //
+/ JetBrains Java Annotations (compile-only) /
+JetBrains annotations are provided under version 2 of the Apache License. (Apache-2)
+Full License: https://github.com/JetBrains/java-annotations/blob/master/LICENSE.txt
+Source Code: https://github.com/JetBrains/java-annotations
+Copyright © 2000-2022 JetBrains s.r.o.
+
+/ SpotBugs Annotations (compile-only) /
+Annotations for SpotBugs (or FindBugs) are licensed under the GNU Lesser General Public License,
+version 2.1 or later. (LGPL-2.1 [or later]).
+Full License: https://github.com/spotbugs/spotbugs/blob/master/LICENSE
+Source Code: https://github.com/spotbugs/spotbugs/tree/master/spotbugs-annotations
+Copyright © 2005, University of Maryland (as part of FindBugs)
+
+// Metrics //
+/ bStats /
+bStats metrics are provided as a service to the plugin community.
+As of version 3.0.0, it is provided under the permissive MIT license.
+If you don't want bStats to collect data from your server, you can disable it in the bStats config file.
+This file can be found in the /plugins/bStats/ folder on the running server.
+Privacy Policy: https://bstats.org/privacy-policy
+Full License: https://github.com/Bastian/bStats-Metrics/blob/master/LICENSE
+Source Code: https://github.com/Bastian/bStats-Metrics
+Copyright © 2016-2022 Bastian Oppermann (AKA BtoBastian)
