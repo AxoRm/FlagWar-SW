@@ -3,6 +3,8 @@ main: ${groupId}.${artifactId}
 version: ${project.version}
 api-version: ${project.bukkitAPIVersion}
 
+commands:
+    war: {}
 authors:
     - Shade / Zren (CellWar, Towny)
     - ElgarL (TownyAdvanced)
