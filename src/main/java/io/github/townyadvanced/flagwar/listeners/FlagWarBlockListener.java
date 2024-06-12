@@ -65,6 +65,13 @@ public class FlagWarBlockListener implements Listener {
     @EventHandler (priority = EventPriority.HIGH)
     @SuppressWarnings("unused")
     public void onFlagWarFlagPlace(final TownyBuildEvent townyBuildEvent) {
+        System.out.println("Got build event.");
+
+        System.out.println(townyBuildEvent.getTownBlock() == null || townyBuildEvent.getTownBlock().getWorld().isWarAllowed());
+        System.out.println(townyBuildEvent.getTownBlock() == null || townyBuildEvent.getTownBlock().getTownOrNull().isAllowedToWar());
+        System.out.println(FlagWarConfig.isAllowingAttacks());
+        System.out.println(townyBuildEvent.getMaterial().equals(FlagWarConfig.getFlagBaseMaterial()));
+
         if (townyBuildEvent.getTownBlock() == null
             || !townyBuildEvent.getTownBlock().getWorld().isWarAllowed()
             || !townyBuildEvent.getTownBlock().getTownOrNull().isAllowedToWar()
@@ -77,6 +84,8 @@ public class FlagWarBlockListener implements Listener {
         var player = townyBuildEvent.getPlayer();
         var block = player.getWorld().getBlockAt(townyBuildEvent.getLocation());
         var worldCoord = new WorldCoord(block.getWorld().getName(), Coord.parseCoord(block));
+
+        System.out.println(towny.getCache(player).getStatus());
 
         if (towny.getCache(player).getStatus().equals(TownBlockStatus.ENEMY)) {
             tryCallCellAttack(townyBuildEvent, player, block, worldCoord);
@@ -155,10 +164,13 @@ public class FlagWarBlockListener implements Listener {
      */
     private void tryCallCellAttack(final TownyActionEvent event, final Player p, final Block b, final WorldCoord wC) {
         try {
+            System.out.println("Trying to call cell attack");
             if (FlagWar.callAttackCellEvent(towny, p, b, wC)) {
                 event.setCancelled(false);
+                System.out.println("Success called cell attack");
             }
         } catch (TownyException townyException) {
+            townyException.printStackTrace();
             event.setCancelMessage(townyException.getMessage());
         }
     }

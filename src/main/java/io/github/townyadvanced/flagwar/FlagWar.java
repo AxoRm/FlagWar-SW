@@ -597,12 +597,10 @@ public class FlagWar extends JavaPlugin {
             }
         }
 
-        if (!block.getWorld().hasCeiling()) { // Ignore if natural ceiling for world
-            Block highestBlock = block.getWorld().getHighestBlockAt(block.getLocation());
-            if (highestBlock.getY() > block.getWorld().getMaxHeight() - checkHeight
-                && yLoc < highestBlock.getY() - 1) { // Traditional check
-                throw new TownyException(Translate.fromPrefixed("error.flag.need-above-ground"));
-            }
+        Block highestBlock = block.getWorld().getHighestBlockAt(block.getLocation());
+        if (highestBlock.getY() > block.getWorld().getMaxHeight() - checkHeight
+            && yLoc < highestBlock.getY() - 1) { // Traditional check
+            throw new TownyException(Translate.fromPrefixed("error.flag.need-above-ground"));
         }
     }
 
