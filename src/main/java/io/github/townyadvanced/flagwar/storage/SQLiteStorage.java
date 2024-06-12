@@ -1,0 +1,138 @@
+/*
+ * Copyright (c) 2024 TownyAdvanced
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *          http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package io.github.townyadvanced.flagwar.storage;
+import com.palmergames.bukkit.towny.TownyAPI;
+import com.palmergames.bukkit.towny.object.Town;
+import io.github.townyadvanced.flagwar.FlagWar;
+import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitRunnable;
+
+import java.io.File;
+import java.io.IOException;
+import java.sql.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class SQLiteStorage {
+    Set<NewWar> newWars = new HashSet<>();
+
+    File file;
+    public Connection connection;
+    FlagWar plugin;
+    public SQLiteStorage (String filePath, BukkitRunnable onSQLLoad, FlagWar plugin) {
+        this.plugin = plugin;
+        this.file = new File(plugin.getDataFolder(), filePath);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdir();
+                    if (!file.exists()) file.createNewFile();
+                } catch (IOException e) {
+                    plugin.getLogger().severe("Cannot create database file " + file.getPath() + " Stack:");
+                    for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                        plugin.getLogger().severe(stackTraceElement.toString());
+                    }
+                    Bukkit.getPluginManager().disablePlugin(plugin);
+                }
+
+                try {
+                    connection = DriverManager.getConnection("jdbc:sqlite:"+file.getAbsolutePath());
+                } catch (SQLException e) {
+                    plugin.getLogger().severe("Cannot create SQL connection. Stack:");
+                    e.printStackTrace();
+                    Bukkit.getPluginManager().disablePlugin(plugin);
+                }
+
+                if (connection != null) onSQLLoad.runTaskAsynchronously(plugin);
+            }
+        }.runTaskAsynchronously(plugin);
+    }
+
+    public void initDatabase() {
+        try {
+            PreparedStatement createNewWarsTableStatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `newWars` (`attacker` TEXT NOT NULL, `victim` TEXT NOT NULL, `day` int NOT NULL, `month` int NOT NULL, `hour` int NOT NULL);");
+            createNewWarsTableStatement.execute();
+
+            PreparedStatement queryWarsStatement = connection.prepareStatement("SELECT * FROM `newWars`");
+            ResultSet resultSet = queryWarsStatement.executeQuery();
+
+            Map<String, String> toDelete = new HashMap<>();
+
+            while (resultSet.next()) {
+                Town attacker = TownyAPI.getInstance().getTown(resultSet.getString("attacker"));
+                Town victim = TownyAPI.getInstance().getTown(resultSet.getString("victim"));
+                int day = resultSet.getInt("day");
+                int month = resultSet.getInt("month");
+                int hour = resultSet.getInt("hour");
+
+                if (attacker == null || victim == null || attacker.isRuined() || victim.isRuined()) {
+                    toDelete.put(resultSet.getString("attacker"), resultSet.getString("victim"));
+                };
+
+                newWars.add(new NewWar(attacker, victim, day, month, hour));
+            }
+
+            for (Map.Entry<String, String> warEntry : toDelete.entrySet()) {
+
+                String attacker = warEntry.getKey();
+                String victim = warEntry.getValue();
+
+                PreparedStatement deleteUnresolvedStatement = connection.prepareStatement("DELETE FROM `newWars` WHERE `attacker` = ? AND `victim` = ?;");
+                deleteUnresolvedStatement.setString(1, attacker);
+                deleteUnresolvedStatement.setString(2, victim);
+
+                deleteUnresolvedStatement.execute();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void saveNewWar(NewWar newWar) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    PreparedStatement saveStatement = FlagWar.storage.connection.prepareStatement("INSERT INTO `newWars` VALUES (?, ?, ?, ?, ?);");
+                    saveStatement.setString(1, newWar.attacker.getName());
+                    saveStatement.setString(2, newWar.victim.getName());
+                    saveStatement.setInt(3, newWar.month);
+                    saveStatement.setInt(4, newWar.day);
+                    saveStatement.setInt(5, newWar.hour);
+                } catch (SQLException ignored) {}
+            }
+        }.runTaskAsynchronously(FlagWar.getFlagWar());
+    }
+
+    public static void deleteNewWar(NewWar newWar) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    PreparedStatement deleteStatement = FlagWar.storage.connection.prepareStatement("DELETE FROM `newWars` WHERE `attacker` = ? AND `victim` = ?;");
+                    deleteStatement.setString(1, newWar.attacker.getName());
+                    deleteStatement.setString(2, newWar.victim.getName());
+                } catch (SQLException ignored) {}
+            }
+        }.runTaskAsynchronously(FlagWar.getFlagWar());
+    }
+
+
+}

@@ -18,6 +18,8 @@
 package io.github.townyadvanced.flagwar.listeners;
 
 import com.palmergames.bukkit.towny.event.actions.TownyActionEvent;
+import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
+import com.palmergames.bukkit.towny.object.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -31,8 +33,6 @@ import org.bukkit.event.block.BlockPistonRetractEvent;
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.event.actions.TownyBuildEvent;
 import com.palmergames.bukkit.towny.exceptions.TownyException;
-import com.palmergames.bukkit.towny.object.Coord;
-import com.palmergames.bukkit.towny.object.WorldCoord;
 import com.palmergames.bukkit.towny.object.PlayerCache.TownBlockStatus;
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
@@ -65,13 +65,6 @@ public class FlagWarBlockListener implements Listener {
     @EventHandler (priority = EventPriority.HIGH)
     @SuppressWarnings("unused")
     public void onFlagWarFlagPlace(final TownyBuildEvent townyBuildEvent) {
-        System.out.println("Got build event.");
-
-        System.out.println(townyBuildEvent.getTownBlock() == null || townyBuildEvent.getTownBlock().getWorld().isWarAllowed());
-        System.out.println(townyBuildEvent.getTownBlock() == null || townyBuildEvent.getTownBlock().getTownOrNull().isAllowedToWar());
-        System.out.println(FlagWarConfig.isAllowingAttacks());
-        System.out.println(townyBuildEvent.getMaterial().equals(FlagWarConfig.getFlagBaseMaterial()));
-
         if (townyBuildEvent.getTownBlock() == null
             || !townyBuildEvent.getTownBlock().getWorld().isWarAllowed()
             || !townyBuildEvent.getTownBlock().getTownOrNull().isAllowedToWar()
@@ -85,8 +78,7 @@ public class FlagWarBlockListener implements Listener {
         var block = player.getWorld().getBlockAt(townyBuildEvent.getLocation());
         var worldCoord = new WorldCoord(block.getWorld().getName(), Coord.parseCoord(block));
 
-        System.out.println(towny.getCache(player).getStatus());
-
+        // TODO: REMAKE CHECKING WAR
         if (towny.getCache(player).getStatus().equals(TownBlockStatus.ENEMY)) {
             tryCallCellAttack(townyBuildEvent, player, block, worldCoord);
         }
@@ -164,10 +156,8 @@ public class FlagWarBlockListener implements Listener {
      */
     private void tryCallCellAttack(final TownyActionEvent event, final Player p, final Block b, final WorldCoord wC) {
         try {
-            System.out.println("Trying to call cell attack");
             if (FlagWar.callAttackCellEvent(towny, p, b, wC)) {
                 event.setCancelled(false);
-                System.out.println("Success called cell attack");
             }
         } catch (TownyException townyException) {
             townyException.printStackTrace();
