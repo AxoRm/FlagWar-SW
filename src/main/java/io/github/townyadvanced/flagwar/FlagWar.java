@@ -53,6 +53,7 @@ import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
 
 import java.io.IOException;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -65,21 +66,25 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import io.github.townyadvanced.flagwar.storage.SQLiteStorage;
 import io.github.townyadvanced.flagwar.util.Messaging;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.command.CommandMap;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * The main class of the TownyAdvanced: FlagWar addon. Houses core functionality.
  */
 public class FlagWar extends JavaPlugin {
+    public static CommandMap commandMap;
 
     /** Holds the Bukkit {@link PluginManager}. */
     private static final PluginManager PLUGIN_MANAGER = Bukkit.getPluginManager();
@@ -120,6 +125,7 @@ public class FlagWar extends JavaPlugin {
     private WarzoneListener warzoneListener;
     /** Holds instance of the {@link OutlawListener}. */
     private OutlawListener outlawListener;
+    public static SQLiteStorage storage;
 
     /**
      * Initializes the Scheduler object based on whether we're using Folia/Paper or Spigot/Bukkit.
@@ -134,6 +140,22 @@ public class FlagWar extends JavaPlugin {
      */
     @Override
     public void onEnable() {
+        storage = new SQLiteStorage("database.db", new BukkitRunnable() {
+            @Override
+            public void run() {
+
+            }
+        }, this);
+        try {
+            final Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
+            bukkitCommandMap.setAccessible(true);
+            commandMap = (CommandMap) bukkitCommandMap.get(Bukkit.getServer());
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            getLogger().severe("Cannot access CommandMap. Contact me in github!");
+            e.printStackTrace();
+            Bukkit.getPluginManager().disablePlugin(this);
+        }
+
         setInstance();
 
         if (loadConfig()) {
