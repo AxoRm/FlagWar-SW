@@ -16,5 +16,29 @@
 
 package io.github.townyadvanced.flagwar.commands;
 
-public class WarCommand {
+import com.google.common.collect.Lists;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import java.util.List;
+
+public class WarCommand extends AbstractCommand {
+    public WarCommand() {
+        super("war");
+    }
+    @Override
+    public void execute(CommandSender sender, String[] args) {
+        if (args.length == 0) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("Данную команду можно выполнять только от имени игрока!");
+            }
+
+        }
+    }
+
+    @Override
+    public List<String> complete(CommandSender sender, String[] args) {
+        if(sender.isOp() && args.length == 1) return Lists.newArrayList("status", "end");
+        return List.of();
+    }
 }
