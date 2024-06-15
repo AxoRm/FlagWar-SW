@@ -21,13 +21,15 @@ import com.palmergames.bukkit.towny.object.Town;
 public class NewWar {
     public Town attacker;
     public Town victim;
+    public int year;
     public int day;
     public int month;
     public int hour;
 
-    public NewWar(Town attacker, Town victim, int day, int month, int hour) {
+    public NewWar(Town attacker, Town victim, int year, int month, int day, int hour) {
         this.attacker = attacker;
         this.victim = victim;
+        this.year = year;
         this.day = day;
         this.month = month;
         this.hour = hour;

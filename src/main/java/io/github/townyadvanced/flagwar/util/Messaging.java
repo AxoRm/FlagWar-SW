@@ -18,10 +18,15 @@ package io.github.townyadvanced.flagwar.util;
 
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
+import net.kyori.adventure.text.Component;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
+import java.util.Arrays;
 import java.util.Formatter;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,5 +76,17 @@ public final class Messaging {
             debugString = formatter.format(messageFormat, args).toString();
         }
         debug(debugString);
+    }
+
+    public static List<Component> formatForList(List<String> s) {
+        return s.stream().map(Messaging::formatForComponent).toList();
+    }
+
+    public static String formatForString(String s) {
+        return ChatColor.translateAlternateColorCodes('&', s);
+    }
+
+    public static Component formatForComponent(String s) {
+        return Component.text(ChatColor.translateAlternateColorCodes('&', s));
     }
 }

@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class SQLiteStorage {
-    Set<NewWar> newWars = new HashSet<>();
+    public static  Set<NewWar> newWars = new HashSet<>();
 
     File file;
     public Connection connection;
@@ -67,7 +67,7 @@ public class SQLiteStorage {
 
     public void initDatabase() {
         try {
-            PreparedStatement createNewWarsTableStatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `newWars` (`attacker` TEXT NOT NULL, `victim` TEXT NOT NULL, `day` int NOT NULL, `month` int NOT NULL, `hour` int NOT NULL);");
+            PreparedStatement createNewWarsTableStatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `newWars` (`attacker` TEXT NOT NULL, `victim` TEXT NOT NULL, `day` int NOT NULL, `month` int NOT NULL, `hour` int NOT NULL, `year` int NOT NULL);");
             createNewWarsTableStatement.execute();
 
             PreparedStatement queryWarsStatement = connection.prepareStatement("SELECT * FROM `newWars`");
@@ -78,6 +78,7 @@ public class SQLiteStorage {
             while (resultSet.next()) {
                 Town attacker = TownyAPI.getInstance().getTown(resultSet.getString("attacker"));
                 Town victim = TownyAPI.getInstance().getTown(resultSet.getString("victim"));
+                int year = resultSet.getInt("year");
                 int day = resultSet.getInt("day");
                 int month = resultSet.getInt("month");
                 int hour = resultSet.getInt("hour");
@@ -86,7 +87,7 @@ public class SQLiteStorage {
                     toDelete.put(resultSet.getString("attacker"), resultSet.getString("victim"));
                 };
 
-                newWars.add(new NewWar(attacker, victim, day, month, hour));
+                newWars.add(new NewWar(attacker, victim, year, month, day, hour));
             }
 
             for (Map.Entry<String, String> warEntry : toDelete.entrySet()) {
@@ -110,12 +111,13 @@ public class SQLiteStorage {
             @Override
             public void run() {
                 try {
-                    PreparedStatement saveStatement = FlagWar.storage.connection.prepareStatement("INSERT INTO `newWars` VALUES (?, ?, ?, ?, ?);");
+                    PreparedStatement saveStatement = FlagWar.storage.connection.prepareStatement("INSERT INTO `newWars` VALUES (?, ?, ?, ?, ?, ?);");
                     saveStatement.setString(1, newWar.attacker.getName());
                     saveStatement.setString(2, newWar.victim.getName());
                     saveStatement.setInt(3, newWar.month);
                     saveStatement.setInt(4, newWar.day);
                     saveStatement.setInt(5, newWar.hour);
+                    saveStatement.setInt(6, newWar.year);
                 } catch (SQLException ignored) {}
             }
         }.runTaskAsynchronously(FlagWar.getFlagWar());

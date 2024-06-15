@@ -16,6 +16,7 @@
 
 package io.github.townyadvanced.flagwar;
 
+import com.palmergames.bukkit.metrics.bukkit.Metrics;
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.TownyEconomyHandler;
@@ -35,6 +36,7 @@ import com.palmergames.bukkit.towny.scheduling.impl.FoliaTaskScheduler;
 import com.palmergames.bukkit.towny.utils.AreaSelectionUtil;
 import com.palmergames.bukkit.util.Version;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.github.townyadvanced.flagwar.commands.WarCommand;
 import io.github.townyadvanced.flagwar.config.ConfigLoader;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
 import io.github.townyadvanced.flagwar.events.CellAttackCanceledEvent;
@@ -68,7 +70,6 @@ import java.util.logging.Logger;
 
 import io.github.townyadvanced.flagwar.storage.SQLiteStorage;
 import io.github.townyadvanced.flagwar.util.Messaging;
-import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -85,7 +86,6 @@ import org.bukkit.scheduler.BukkitRunnable;
  */
 public class FlagWar extends JavaPlugin {
     public static CommandMap commandMap;
-
     /** Holds the Bukkit {@link PluginManager}. */
     private static final PluginManager PLUGIN_MANAGER = Bukkit.getPluginManager();
     /** Holds a hashmap of all active {@link CellUnderAttack}. **/
@@ -102,8 +102,6 @@ public class FlagWar extends JavaPlugin {
     private static final Version VALID_TOWNY_VER = Version.fromString("0.100.0.0");
     /** Value of minimum configuration file version. Used for determining if file should be regenerated. */
     private static final double MIN_CONFIG_VER = 1.6;
-    /** BStats Metrics ID. */
-    public static final int METRICS_ID = 10325;
     /** Holds FlagWar's Bukkit-assigned JUL {@link Logger}. */
     private static final Logger FW_LOGGER = Logger.getLogger("FlagWar");
     /** The number of cardinal directions. */
@@ -143,7 +141,7 @@ public class FlagWar extends JavaPlugin {
         storage = new SQLiteStorage("database.db", new BukkitRunnable() {
             @Override
             public void run() {
-
+                storage.initDatabase();
             }
         }, this);
         try {
@@ -162,13 +160,12 @@ public class FlagWar extends JavaPlugin {
             return;
         }
         setLocale();
-
+        new WarCommand();
         brandingMessage();
         checkTowny();
         initializeListeners();
         loadFlagWarMaterials();
         registerEvents();
-        bStatsKickstart();
     }
 
     private boolean loadConfig() {
@@ -210,12 +207,6 @@ public class FlagWar extends JavaPlugin {
             ? Objects.requireNonNull(plugin.getConfig().getString("translation")) : "en_US");
     }
 
-    /** Register FlagWar with bStats. Viewable from: <a href="https://bstats.org/plugin/bukkit/FlagWar/">...</a> */
-    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
-    @SuppressWarnings({"unused", "java:S1854", "java:S1481"})
-    private void bStatsKickstart() {
-        var metrics = new Metrics(this, METRICS_ID);
-    }
 
     private void checkTowny() {
         FW_LOGGER.log(Level.INFO, () -> Translate.from("startup.check-towny.notify"));
@@ -526,7 +517,6 @@ public class FlagWar extends JavaPlugin {
         var attackingResident = townyUniverse.getResident(player.getUniqueId());
         Town landOwnerTown;
         Town attackingTown;
-
         Nation landOwnerNation;
         Nation attackingNation;
         TownBlock townBlock;

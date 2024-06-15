@@ -1,26 +1,20 @@
-/*
- * Copyright (c) 2024 TownyAdvanced
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *          http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
 
 package io.github.townyadvanced.flagwar.commands;
 
 import com.google.common.collect.Lists;
+import com.palmergames.bukkit.towny.Towny;
+import com.palmergames.bukkit.towny.TownyAPI;
+import com.palmergames.bukkit.towny.object.Resident;
+import com.palmergames.bukkit.towny.object.Town;
+import com.palmergames.bukkit.towny.object.TownyObject;
+import io.github.townyadvanced.flagwar.FlagWar;
+import io.github.townyadvanced.flagwar.gui.Gui;
+import io.github.townyadvanced.flagwar.util.Messaging;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class WarCommand extends AbstractCommand {
     public WarCommand() {
@@ -29,16 +23,37 @@ public class WarCommand extends AbstractCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length == 0) {
+            sender.sendMessage(Messaging.formatForComponent("&cНеполная команда, пожалуйста укажите &eгород атаки"));
+            return;
+        }
+        if (args.length == 1) {
             if (!(sender instanceof Player)) {
                 sender.sendMessage("Данную команду можно выполнять только от имени игрока!");
+                return;
             }
-
+            Town townEnemy = TownyAPI.getInstance().getTown(args[0]);
+            if (townEnemy == null) {
+                sender.sendMessage(Messaging.formatForComponent("&cТы долбоеб????? Такого города нет блять!"));
+                return;
+            }
+            Town town = TownyAPI.getInstance().getTown((Player) sender);
+            if (town == null) {
+                sender.sendMessage(Messaging.formatForComponent("&cВы не мэр ебучего города"));
+                return;
+            }
+            if (town.getMayor().getPlayer() == null || !town.getMayor().getPlayer().equals((Player)sender)) {
+                sender.sendMessage(Messaging.formatForComponent("&cНищенка, стань мэром и выписывай залупу в чат!"));
+                return;
+            }
+            Gui gui = new Gui((Player) sender, townEnemy, town);
+            gui.displayInventory((Player) sender);
         }
     }
 
     @Override
     public List<String> complete(CommandSender sender, String[] args) {
-        if(sender.isOp() && args.length == 1) return Lists.newArrayList("status", "end");
+        //if(sender.isOp() && args.length == 1) return Lists.newArrayList("status", "end");
+        if(args.length == 1) return TownyAPI.getInstance().getTowns().stream().map(TownyObject::getName).collect(Collectors.toList());
         return List.of();
     }
 }
