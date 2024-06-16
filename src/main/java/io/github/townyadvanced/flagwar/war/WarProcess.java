@@ -55,7 +55,6 @@ public class WarProcess implements Listener {
     Location spawnLocation;
 
     public WarProcess(Town aggressorTown, Town defenderTown) {
-
         this.defenderTown = defenderTown;
         this.aggressorTown = aggressorTown;
 

@@ -24,7 +24,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class PreWarProcess implements Listener {
-    Set<NewWar> newWars = SQLiteStorage.newWars;
+    Set<NewWar> newWars = SQLiteStorage.newWars; //TODO: Реализовать PreWarProcess extneds NewWar, так как PreWarProcess должен разбирается только с 1 войной, далее сделать список уже из PreWarProcess в классе WarManager
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public PreWarProcess() {
@@ -78,49 +78,29 @@ public class PreWarProcess implements Listener {
             long days = timeBefore / (24 * 60);
             long hours = (timeBefore % (24 * 60)) / 60;
             long minutes = timeBefore % 60;
-
             StringBuilder messageBuilder = new StringBuilder();
+
             if (days > 0) {
-                if (days == 1) {
-                    messageBuilder.append(days).append(" день ");
-                } else if (days >= 2 && days <= 4) {
-                    messageBuilder.append(days).append(" дня ");
-                } else {
-                    messageBuilder.append(days).append(" дней ");
-                }
+                messageBuilder.append(days).append(" д. ");
             }
 
             if (hours > 0) {
-                if (hours == 1) {
-                    messageBuilder.append(hours).append(" час ");
-                } else if (hours >= 2 && hours <= 4) {
-                    messageBuilder.append(hours).append(" часа ");
-                } else {
-                    messageBuilder.append(hours).append(" часов ");
-                }
+                messageBuilder.append(hours).append(" ч. ");
             }
 
             if (minutes > 0) {
-                if (minutes == 1) {
-                    messageBuilder.append(minutes).append(" минута ");
-                } else if (minutes >= 2 && minutes <= 4) {
-                    messageBuilder.append(minutes).append(" минуты ");
-                } else {
-                    messageBuilder.append(minutes).append(" минут ");
-                }
+                messageBuilder.append(minutes).append(" мин. ");
             }
-
             timeLeftMessage = messageBuilder.toString().trim();
         } else {
-            if (timeBefore == 1) {
+            if (timeBefore % 10 == 1) {
                 timeLeftMessage = timeBefore + " секунда";
-            } else if (timeBefore >= 2 && timeBefore <= 4) {
+            } else if (timeBefore % 10 >= 2 && timeBefore % 10 <= 4) {
                 timeLeftMessage = timeBefore + " секунды";
             } else {
                 timeLeftMessage = timeBefore + " секунд";
             }
         }
-
         String attackerMessage = "&eДо начала войны с &c" + war.victim.getName() + " &eосталось &c" + timeLeftMessage;
         String victimMessage = "&eДо начала войны с &c" + war.attacker.getName() + " &eосталось &c" + timeLeftMessage;
 
