@@ -17,6 +17,7 @@
 package io.github.townyadvanced.flagwar.events;
 
 import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -33,6 +34,12 @@ public class CellWonEvent extends Event implements Cancellable {
     private boolean cancelled = false;
     /** Stores the CellUnderAttack being won. */
     private final CellUnderAttack cellUnderAttack;
+    /** Player that start CellAttack. */
+    private final Player cellOwner;
+
+    public Player getCellOwner() {
+        return cellOwner;
+    }
 
     /** Return the event's {@link HandlerList}. */
     @Override
@@ -49,8 +56,9 @@ public class CellWonEvent extends Event implements Cancellable {
      * Associates a {@link CellUnderAttack} with the {@link CellWonEvent} to be later parsed for information.
      * @param cellAttackData the CellUnderAttack to associate to the event.
      */
-    public CellWonEvent(final CellUnderAttack cellAttackData) {
+    public CellWonEvent(final Player cellOwner, final CellUnderAttack cellAttackData) {
         this.cellUnderAttack = cellAttackData;
+        this.cellOwner = cellOwner;
     }
 
     /**

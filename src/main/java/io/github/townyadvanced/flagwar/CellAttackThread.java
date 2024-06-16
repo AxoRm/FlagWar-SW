@@ -18,6 +18,8 @@
 package io.github.townyadvanced.flagwar;
 
 import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
+import org.bukkit.entity.Player;
+
 import java.util.TimerTask;
 
 /**
@@ -27,13 +29,14 @@ public class CellAttackThread extends TimerTask {
 
     /** Holds the relevant {@link CellUnderAttack}, assigned by the constructor. */
     private final CellUnderAttack cell;
+    private final Player flagOwner;
 
     /**
      * Constructs the {@link CellAttackThread} for a given {@link CellUnderAttack}.
      * @param cellUnderAttack to assign the CellAttackThread to.
      */
-    public CellAttackThread(final CellUnderAttack cellUnderAttack) {
-
+    public CellAttackThread(final Player flagOwner, final CellUnderAttack cellUnderAttack) {
+        this.flagOwner = flagOwner;
         this.cell = cellUnderAttack;
     }
 
@@ -46,7 +49,7 @@ public class CellAttackThread extends TimerTask {
 
         cell.changeFlag();
         if (cell.hasEnded()) {
-            FlagWar.attackWon(cell);
+            FlagWar.attackWon(flagOwner, cell);
         }
     }
 }

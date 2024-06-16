@@ -82,7 +82,7 @@ public class CellAttackEvent extends Event implements Cancellable {
 
     /** @return a new {@link CellUnderAttack} with the Towny instance, attacker, flag base, and attack time stored.  */
     public CellUnderAttack getData() {
-        return new CellUnderAttack(player.getName(), flagBlock, phaseDuration);
+        return new CellUnderAttack(player, flagBlock, phaseDuration);
     }
 
     /**

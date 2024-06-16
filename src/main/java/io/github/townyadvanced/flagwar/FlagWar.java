@@ -408,8 +408,8 @@ public class FlagWar extends JavaPlugin {
         ATTACK_HASH_MAP.remove(cell);
     }
 
-    static void attackWon(final CellUnderAttack cell) {
-        var cellWonEvent = new CellWonEvent(cell);
+    static void attackWon(final Player flagOwner, final CellUnderAttack cell) {
+        var cellWonEvent = new CellWonEvent(flagOwner, cell);
         PLUGIN_MANAGER.callEvent(cellWonEvent);
         cell.cancel();
         removeCellUnderAttack(cell);

@@ -10,7 +10,9 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.io.BukkitObjectInputStream;
 
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
@@ -21,11 +23,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class PreWarProcess {
+public class PreWarProcess implements Listener {
     Set<NewWar> newWars = SQLiteStorage.newWars;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public PreWarProcess() {
+        Bukkit.getPluginManager().registerEvents(this, FlagWar.getFlagWar());
     }
 
     public void scheduleNotifications() {

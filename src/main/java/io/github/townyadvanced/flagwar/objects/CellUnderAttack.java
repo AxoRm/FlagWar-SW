@@ -34,6 +34,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -90,10 +91,9 @@ public class CellUnderAttack extends Cell {
      * @param base {@link Block} representing the "flag pole" of the block
      * @param timerPhase Time (as a long) between Material shifting the flag and beacon.
      */
-    public CellUnderAttack(final String flagOwner, final Block base, final Duration timerPhase) {
-
+    public CellUnderAttack( Player flagOwner, final Block base, final Duration timerPhase) {
         super(base.getLocation());
-        this.nameOfFlagOwner = flagOwner;
+        this.nameOfFlagOwner = flagOwner.getName();
         this.flagBaseBlock = base;
         this.flagPhaseID = 0;
         this.flagLifeTime = FlagWarConfig.getFlagLifeTime();
@@ -103,7 +103,7 @@ public class CellUnderAttack extends Cell {
         this.flagLightBlock = world.getBlockAt(base.getX(), base.getY() + 2, base.getZ());
 
         this.flagPhaseDuration = timerPhase;
-        this.thread = new CellAttackThread(this);
+        this.thread = new CellAttackThread(flagOwner, this);
         this.hologramThread = new HologramUpdateThread(this);
     }
 
