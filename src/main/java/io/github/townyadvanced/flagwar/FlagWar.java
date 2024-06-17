@@ -36,6 +36,7 @@ import com.palmergames.bukkit.towny.scheduling.impl.FoliaTaskScheduler;
 import com.palmergames.bukkit.towny.utils.AreaSelectionUtil;
 import com.palmergames.bukkit.util.Version;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.github.townyadvanced.flagwar.commands.StartWarCommand;
 import io.github.townyadvanced.flagwar.commands.WarCommand;
 import io.github.townyadvanced.flagwar.config.ConfigLoader;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
@@ -70,6 +71,7 @@ import java.util.logging.Logger;
 
 import io.github.townyadvanced.flagwar.storage.SQLiteStorage;
 import io.github.townyadvanced.flagwar.util.Messaging;
+import io.github.townyadvanced.flagwar.war.WarManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -85,6 +87,8 @@ import org.bukkit.scheduler.BukkitRunnable;
  * The main class of the TownyAdvanced: FlagWar addon. Houses core functionality.
  */
 public class FlagWar extends JavaPlugin {
+
+    public static WarManager warManager;
     public static CommandMap commandMap;
     /** Holds the Bukkit {@link PluginManager}. */
     private static final PluginManager PLUGIN_MANAGER = Bukkit.getPluginManager();
@@ -160,12 +164,14 @@ public class FlagWar extends JavaPlugin {
             return;
         }
         setLocale();
-        new WarCommand();
         brandingMessage();
         checkTowny();
         initializeListeners();
         loadFlagWarMaterials();
         registerEvents();
+        new WarCommand();
+        new StartWarCommand();
+        warManager = new WarManager();
     }
 
     private boolean loadConfig() {

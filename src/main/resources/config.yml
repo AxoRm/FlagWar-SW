@@ -132,7 +132,7 @@ holograms:
 beacon:
     draw: true
     radius: 3
-    height_above_flag.min: 3
+    height_above_flag.min: 2
     height_above_flag.max: 64
     wireframe_block: 'GLOWSTONE'
 

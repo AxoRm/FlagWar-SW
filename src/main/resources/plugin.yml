@@ -5,6 +5,8 @@ api-version: ${project.bukkitAPIVersion}
 
 commands:
     war: {}
+    startwar: {}
+    returnwar: {}
 authors:
     - Shade / Zren (CellWar, Towny)
     - ElgarL (TownyAdvanced)

@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class SQLiteStorage {
-    public static  Set<NewWar> newWars = new HashSet<>();
+    public static Set<NewWar> newWars = new HashSet<>();
 
     File file;
     public Connection connection;

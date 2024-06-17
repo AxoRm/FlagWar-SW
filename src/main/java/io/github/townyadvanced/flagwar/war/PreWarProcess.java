@@ -1,111 +1,98 @@
 package io.github.townyadvanced.flagwar.war;
 
+import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.Resident;
 import com.palmergames.bukkit.towny.object.Town;
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.storage.NewWar;
-import io.github.townyadvanced.flagwar.storage.SQLiteStorage;
 import io.github.townyadvanced.flagwar.util.Messaging;
-import net.kyori.adventure.audience.Audience;
-import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class PreWarProcess implements Listener {
-    Set<NewWar> newWars = SQLiteStorage.newWars; //TODO: Реализовать PreWarProcess extneds NewWar, так как PreWarProcess должен разбирается только с 1 войной, далее сделать список уже из PreWarProcess в классе WarManager
+    NewWar war;
+    ZonedDateTime warTime;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public PreWarProcess() {
+    public PreWarProcess(NewWar war) {
+        this.war = war;
         Bukkit.getPluginManager().registerEvents(this, FlagWar.getFlagWar());
+        planNotifications();
     }
 
-    public void scheduleNotifications() {
-        for (NewWar war : newWars) {
-            planNotifications(war);
-        }
-    }
-
-    public void scheduleNotification(NewWar war) {
-        newWars.add(war);
-        planNotifications(war);
-    }
-
-    private void planNotifications(NewWar war) {
-        ZonedDateTime warTime = ZonedDateTime.of(war.year, war.month, war.day, war.hour, 0, 0, 0, ZoneId.systemDefault());
+    private void planNotifications() {
+        warTime = war.warTime;
         ZonedDateTime now = ZonedDateTime.now();
 
-        long[] notificationTimesInMinutes = {
-                24 * 60, 12 * 60, 6 * 60, 3 * 60, 60, 30, 10, 3
-        };
-
         long[] notificationTimesInSeconds = {
-                10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+                24 * 3600, 12 * 3600, 6 * 3600, 3 * 3600, 3600, 30 * 60, 10 * 60, 3 * 60,
+                60, 30, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
         };
-
-        scheduleNotification(war, warTime, now.plusSeconds(5), now, ChronoUnit.MINUTES.between(now.plusSeconds(5), warTime), ChronoUnit.MINUTES);
-
-        for (long minutesBefore : notificationTimesInMinutes) {
-            scheduleNotification(war, warTime, warTime.minus(minutesBefore, ChronoUnit.MINUTES), now, minutesBefore, ChronoUnit.MINUTES);
-        }
+        scheduleNotifications(now.plusSeconds(5), now, ChronoUnit.SECONDS.between(now.plusSeconds(5), warTime));
 
         for (long secondsBefore : notificationTimesInSeconds) {
-            scheduleNotification(war, warTime, warTime.minus(secondsBefore, ChronoUnit.SECONDS), now, secondsBefore, ChronoUnit.SECONDS);
+            scheduleNotifications(warTime.minus(secondsBefore, ChronoUnit.SECONDS), now, secondsBefore);
         }
+        scheduleWarStart(now);
     }
 
-    private void scheduleNotification(NewWar war, ZonedDateTime warTime, ZonedDateTime notificationTime, ZonedDateTime now, long timeBefore, ChronoUnit unit) {
+    private void scheduleWarStart(ZonedDateTime now) {
+        scheduler.schedule(() -> FlagWar.warManager.startWar(war), ChronoUnit.SECONDS.between(now, warTime), TimeUnit.SECONDS);
+    }
+    private void scheduleNotifications(ZonedDateTime notificationTime, ZonedDateTime now, long timeBefore) {
         long delay = ChronoUnit.SECONDS.between(now, notificationTime);
         if (delay >= 0) {
-            scheduler.schedule(() -> sendNotification(war, warTime, timeBefore, unit), delay, TimeUnit.SECONDS);
+            scheduler.schedule(() -> sendNotifications(timeBefore), delay, TimeUnit.SECONDS);
         }
     }
 
-    private void sendNotification(NewWar war, ZonedDateTime warTime, long timeBefore, ChronoUnit unit) {
-        String timeLeftMessage;
-        if (unit == ChronoUnit.MINUTES) {
-            long days = timeBefore / (24 * 60);
-            long hours = (timeBefore % (24 * 60)) / 60;
-            long minutes = timeBefore % 60;
-            StringBuilder messageBuilder = new StringBuilder();
-
-            if (days > 0) {
-                messageBuilder.append(days).append(" д. ");
-            }
-
-            if (hours > 0) {
-                messageBuilder.append(hours).append(" ч. ");
-            }
-
-            if (minutes > 0) {
-                messageBuilder.append(minutes).append(" мин. ");
-            }
-            timeLeftMessage = messageBuilder.toString().trim();
-        } else {
-            if (timeBefore % 10 == 1) {
-                timeLeftMessage = timeBefore + " секунда";
-            } else if (timeBefore % 10 >= 2 && timeBefore % 10 <= 4) {
-                timeLeftMessage = timeBefore + " секунды";
-            } else {
-                timeLeftMessage = timeBefore + " секунд";
-            }
+    private void scheduleNotification(Player player, String message, ZonedDateTime notificationTime, ZonedDateTime now) {
+        long delay = ChronoUnit.SECONDS.between(now, notificationTime);
+        if (delay >= 0) {
+            scheduler.schedule(() -> sendNotificationToPlayer(player, message), delay, TimeUnit.SECONDS);
         }
+    }
+
+    private void sendNotifications(long timeBefore) {
+        String timeLeftMessage = getTimeFormattedMessage(timeBefore);
         String attackerMessage = "&eДо начала войны с &c" + war.victim.getName() + " &eосталось &c" + timeLeftMessage;
         String victimMessage = "&eДо начала войны с &c" + war.attacker.getName() + " &eосталось &c" + timeLeftMessage;
 
         sendNotificationToTown(war.attacker, attackerMessage);
         sendNotificationToTown(war.victim, victimMessage);
+    }
+
+    private String getTimeFormattedMessage(long timeBefore) {
+        long days = timeBefore / (24 * 3600);
+        timeBefore %= 24*3600;
+        long hours = timeBefore / 3600;
+        timeBefore %= 3600;
+        long minutes = timeBefore / 60;
+        long seconds = timeBefore % 60;
+        StringBuilder messageBuilder = new StringBuilder();
+        if (days > 0) {
+            messageBuilder.append(days).append(" д. ");
+        }
+        if (hours > 0) {
+            messageBuilder.append(hours).append(" ч. ");
+        }
+        if (minutes > 0) {
+            messageBuilder.append(minutes).append(" мин. ");
+        }
+        if (minutes == 0 && seconds > 0) {
+            messageBuilder.append(seconds).append(" с. ");
+        }
+        return  messageBuilder.toString().trim();
     }
 
     private void sendNotificationToTown(Town town, String message) {
@@ -120,6 +107,32 @@ public class PreWarProcess implements Listener {
                 // Send chat message
                 player.sendMessage(Messaging.formatForString(message));
             }
+        }
+    }
+
+    private void sendNotificationToPlayer(Player player, String message) {
+        // Send action bar message
+        player.sendActionBar(Messaging.formatForString(message));
+        // Send title message
+        player.sendTitle(Messaging.formatForString("&cВнимание! Вам объявили войну!"), Messaging.formatForString(message), 10, 70, 20);
+        // Send chat message
+        player.sendMessage(Messaging.formatForString(message));
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent joinEvent) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("GMT+3"));
+        if (ChronoUnit.SECONDS.between(now, warTime) < 60) return;
+        Player player = joinEvent.getPlayer();
+        Town town = TownyAPI.getInstance().getTown(player);
+        if (town == null) return;
+        if (war.attacker.equals(town)) {
+            String message = "&eДо начала войны с &c" + war.victim.getName() + " &eосталось &c" + getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime));
+            scheduleNotification(player, message, now.plusSeconds(20), now);
+        }
+        if (war.victim.equals(town)) {
+            String message = "&eДо начала войны с &c" + war.attacker.getName() + " &eосталось &c" + getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime));
+            sendNotificationToPlayer(player, message);
         }
     }
 }

@@ -90,8 +90,7 @@ public class HourGui implements Listener {
         int month = selectedDay.getMonthValue();
         int year = selectedDay.getYear();
         NewWar newWar = new NewWar(town, enemyTown, year, month, day, hour);
-        PreWarProcess preWarProcess = new PreWarProcess();
-        preWarProcess.scheduleNotification(newWar);
+        FlagWar.warManager.startPreWarProcess(newWar);
         inventory.close();
     }
 
