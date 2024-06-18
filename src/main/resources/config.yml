@@ -83,7 +83,7 @@ player_limits:
 # Defines the War Flag structure.
 # If the defined block is air, or is affected by gravity, it will be overridden by our defaults.
 flag:
-    waiting_time: "1m" # Time to capture a plot.
+    waiting_time: "1s" # Time to capture a plot.
     base_block: 'OAK_FENCE' # Block required to place a flag.
     light_block: 'TORCH' # TORCH and SOUL_TORCH good. REDSTONE_TORCH questionable.
 

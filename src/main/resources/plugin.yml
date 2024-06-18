@@ -5,7 +5,7 @@ api-version: ${project.bukkitAPIVersion}
 
 commands:
     war: {}
-    startwar: {}
+    warCommand: {}
     returnwar: {}
 authors:
     - Shade / Zren (CellWar, Towny)

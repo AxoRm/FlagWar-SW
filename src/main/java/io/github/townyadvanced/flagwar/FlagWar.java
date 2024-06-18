@@ -16,7 +16,6 @@
 
 package io.github.townyadvanced.flagwar;
 
-import com.palmergames.bukkit.metrics.bukkit.Metrics;
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.TownyEconomyHandler;
@@ -35,8 +34,8 @@ import com.palmergames.bukkit.towny.scheduling.impl.BukkitTaskScheduler;
 import com.palmergames.bukkit.towny.scheduling.impl.FoliaTaskScheduler;
 import com.palmergames.bukkit.towny.utils.AreaSelectionUtil;
 import com.palmergames.bukkit.util.Version;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.github.townyadvanced.flagwar.commands.StartWarCommand;
+import io.github.townyadvanced.flagwar.commands.ReturnWarCommand;
+import io.github.townyadvanced.flagwar.commands.WarAdminCommand;
 import io.github.townyadvanced.flagwar.commands.WarCommand;
 import io.github.townyadvanced.flagwar.config.ConfigLoader;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
@@ -170,7 +169,8 @@ public class FlagWar extends JavaPlugin {
         loadFlagWarMaterials();
         registerEvents();
         new WarCommand();
-        new StartWarCommand();
+        new WarAdminCommand();
+        new ReturnWarCommand();
         warManager = new WarManager();
     }
 

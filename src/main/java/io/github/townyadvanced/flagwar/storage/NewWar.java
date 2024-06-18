@@ -57,6 +57,14 @@ public class NewWar implements Listener {
         this.playersVictim = victim.getResidents().stream().map(Resident::getPlayer).toList();
     }
 
+    public NewWar(Town attacker, Town victim, ZonedDateTime time) {
+        warTime = time;
+        this.attacker = attacker;
+        this.victim = victim;
+        this.playersAttacker = attacker.getResidents().stream().map(Resident::getPlayer).toList();
+        this.playersVictim = victim.getResidents().stream().map(Resident::getPlayer).toList();
+    }
+
     public Town getAttacker() {
         return attacker;
     }
