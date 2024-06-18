@@ -4,6 +4,7 @@ import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.Resident;
 import com.palmergames.bukkit.towny.object.Town;
 import io.github.townyadvanced.flagwar.FlagWar;
+import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.storage.NewWar;
 import io.github.townyadvanced.flagwar.util.Messaging;
 import org.bukkit.Bukkit;
@@ -59,17 +60,18 @@ public class PreWarProcess implements Listener {
     private void scheduleNotification(Player player, String message, ZonedDateTime notificationTime, ZonedDateTime now) {
         long delay = ChronoUnit.SECONDS.between(now, notificationTime);
         if (delay >= 0) {
-            scheduler.schedule(() -> sendNotificationToPlayer(player, message), delay, TimeUnit.SECONDS);
+            scheduler.schedule(() -> sendNotificationToPlayer(player, message, false), delay, TimeUnit.SECONDS);
         }
     }
 
     private void sendNotifications(long timeBefore) {
         String timeLeftMessage = getTimeFormattedMessage(timeBefore);
-        String attackerMessage = "&eДо начала войны с &c" + war.victim.getName() + " &eосталось &c" + timeLeftMessage;
-        String victimMessage = "&eДо начала войны с &c" + war.attacker.getName() + " &eосталось &c" + timeLeftMessage;
+        String attackerMessage = Messaging.parsePlaceholders(Messages.timeLeftMessage, war.victim.getName(), timeLeftMessage);
+        String victimMessage = Messaging.parsePlaceholders(Messages.timeLeftMessage, war.attacker.getName(), timeLeftMessage);
 
-        sendNotificationToTown(war.attacker, attackerMessage);
-        sendNotificationToTown(war.victim, victimMessage);
+
+        sendNotificationToTown(war.attacker, attackerMessage, true);
+        sendNotificationToTown(war.victim, victimMessage, false);
     }
 
     private String getTimeFormattedMessage(long timeBefore) {
@@ -95,7 +97,7 @@ public class PreWarProcess implements Listener {
         return  messageBuilder.toString().trim();
     }
 
-    private void sendNotificationToTown(Town town, String message) {
+    private void sendNotificationToTown(Town town, String message, boolean attacker) {
         // Iterate through each online resident of the town
         for (Resident resident: town.getResidents()) {
             Player player = resident.getPlayer();
@@ -103,18 +105,18 @@ public class PreWarProcess implements Listener {
                 // Send action bar message
                 player.sendActionBar(Messaging.formatForString(message));
                 // Send title message
-                player.sendTitle(Messaging.formatForString("&cВнимание! Вам объявили войну!"), Messaging.formatForString(message), 10, 140, 20);
+                player.sendTitle(Messaging.formatForString(attacker? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 140, 20);
                 // Send chat message
                 player.sendMessage(Messaging.formatForString(message));
             }
         }
     }
 
-    private void sendNotificationToPlayer(Player player, String message) {
+    private void sendNotificationToPlayer(Player player, String message, boolean attacker) {
         // Send action bar message
         player.sendActionBar(Messaging.formatForString(message));
         // Send title message
-        player.sendTitle(Messaging.formatForString("&cВнимание! Вам объявили войну!"), Messaging.formatForString(message), 10, 70, 20);
+        player.sendTitle(Messaging.formatForString(attacker? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 70, 20);
         // Send chat message
         player.sendMessage(Messaging.formatForString(message));
     }
@@ -127,12 +129,12 @@ public class PreWarProcess implements Listener {
         Town town = TownyAPI.getInstance().getTown(player);
         if (town == null) return;
         if (war.attacker.equals(town)) {
-            String message = "&eДо начала войны с &c" + war.victim.getName() + " &eосталось &c" + getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime));
+            String message = Messaging.parsePlaceholders(Messages.timeLeftMessage, war.victim.getName(), getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime)));
             scheduleNotification(player, message, now.plusSeconds(20), now);
         }
         if (war.victim.equals(town)) {
-            String message = "&eДо начала войны с &c" + war.attacker.getName() + " &eосталось &c" + getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime));
-            sendNotificationToPlayer(player, message);
+            String message = Messaging.parsePlaceholders(Messages.timeLeftMessage, war.attacker.getName(), getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime)));
+            sendNotificationToPlayer(player, message, true);
         }
     }
 }

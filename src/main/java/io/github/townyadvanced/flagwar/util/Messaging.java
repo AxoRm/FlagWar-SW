@@ -89,4 +89,11 @@ public final class Messaging {
     public static Component formatForComponent(String s) {
         return Component.text(ChatColor.translateAlternateColorCodes('&', s));
     }
+
+    public static String parsePlaceholders(String str, String ...strings) {
+        for (int i = 0; i < strings.length; i++) {
+            str = str.replace("{"+i+"}", strings[i]);
+        }
+        return str;
+    }
 }

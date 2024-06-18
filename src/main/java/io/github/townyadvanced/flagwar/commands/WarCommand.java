@@ -9,6 +9,7 @@ import com.palmergames.bukkit.towny.object.Town;
 import com.palmergames.bukkit.towny.object.TownyObject;
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.gui.Gui;
+import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.util.Messaging;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -23,26 +24,26 @@ public class WarCommand extends AbstractCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(Messaging.formatForComponent("&cНеполная команда, пожалуйста укажите &eгород атаки"));
+            sender.sendMessage(Messaging.formatForComponent(Messages.noArgs));
             return;
         }
         if (args.length == 1) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage("Данную команду можно выполнять только от имени игрока!");
+                sender.sendMessage(Messages.consoleSender);
                 return;
             }
             Town townEnemy = TownyAPI.getInstance().getTown(args[0]);
-            if (townEnemy == null) {
-                sender.sendMessage(Messaging.formatForComponent("&cТы долбоеб????? Такого города нет блять!"));
+            if (townEnemy == null || townEnemy.isRuined()) {
+                sender.sendMessage(Messaging.formatForComponent(Messages.unknownTown));
                 return;
             }
             Town town = TownyAPI.getInstance().getTown((Player) sender);
             if (town == null) {
-                sender.sendMessage(Messaging.formatForComponent("&cВы не мэр ебучего города"));
+                sender.sendMessage(Messaging.formatForComponent(Messages.noTown));
                 return;
             }
             if (town.getMayor().getPlayer() == null || !town.getMayor().getPlayer().equals((Player)sender)) {
-                sender.sendMessage(Messaging.formatForComponent("&cНищенка, стань мэром и выписывай залупу в чат!"));
+                sender.sendMessage(Messaging.formatForComponent(Messages.notMayor));
                 return;
             }
             Gui gui = new Gui((Player) sender, townEnemy, town);

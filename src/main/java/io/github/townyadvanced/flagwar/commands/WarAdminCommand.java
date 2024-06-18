@@ -5,6 +5,7 @@ import com.palmergames.bukkit.towny.object.Town;
 import com.palmergames.bukkit.towny.object.TownyObject;
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.gui.Gui;
+import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.storage.NewWar;
 import io.github.townyadvanced.flagwar.util.Messaging;
 import io.github.townyadvanced.flagwar.war.WarManager;
@@ -38,16 +39,16 @@ public class WarAdminCommand extends AbstractCommand {
             if (!sender.isOp()) return;
             Town townEnemy = TownyAPI.getInstance().getTown(args[1]);
             if (townEnemy == null) {
-                sender.sendMessage(Messaging.formatForComponent("&cТы долбоеб????? Такого города нет блять!"));
+                sender.sendMessage(Messaging.formatForComponent(Messages.unknownTown));
                 return;
             }
             Town town = TownyAPI.getInstance().getTown((Player) sender);
             if (town == null) {
-                sender.sendMessage(Messaging.formatForComponent("&cВы не мэр ебучего города"));
+                sender.sendMessage(Messaging.formatForComponent(Messages.adminNoTown));
                 return;
             }
             if (town.getMayor().getPlayer() == null || !town.getMayor().getPlayer().equals((Player)sender)) {
-                sender.sendMessage(Messaging.formatForComponent("&cНищенка, стань мэром и выписывай залупу в чат!"));
+                sender.sendMessage(Messaging.formatForComponent(Messages.adminNotMayor));
                 return;
             }
             Bukkit.getLogger().info("Here1");

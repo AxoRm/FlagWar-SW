@@ -50,6 +50,7 @@ import io.github.townyadvanced.flagwar.listeners.FlagWarCustomListener;
 import io.github.townyadvanced.flagwar.listeners.FlagWarEntityListener;
 import io.github.townyadvanced.flagwar.listeners.WarzoneListener;
 import io.github.townyadvanced.flagwar.listeners.OutlawListener;
+import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.objects.Cell;
 import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
 
@@ -127,6 +128,7 @@ public class FlagWar extends JavaPlugin {
     /** Holds instance of the {@link OutlawListener}. */
     private OutlawListener outlawListener;
     public static SQLiteStorage storage;
+    public static Messages messages;
 
     /**
      * Initializes the Scheduler object based on whether we're using Folia/Paper or Spigot/Bukkit.
@@ -141,6 +143,11 @@ public class FlagWar extends JavaPlugin {
      */
     @Override
     public void onEnable() {
+        setInstance();
+        messages = new Messages();
+        messages.reload();
+
+        System.out.println(Messages.unknownTown);
         storage = new SQLiteStorage("database.db", new BukkitRunnable() {
             @Override
             public void run() {
@@ -156,9 +163,6 @@ public class FlagWar extends JavaPlugin {
             e.printStackTrace();
             Bukkit.getPluginManager().disablePlugin(this);
         }
-
-        setInstance();
-
         if (loadConfig()) {
             return;
         }

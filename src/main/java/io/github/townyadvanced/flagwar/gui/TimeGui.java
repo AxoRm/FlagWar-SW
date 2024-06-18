@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.Town;
 import io.github.townyadvanced.flagwar.FlagWar;
+import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.util.Messaging;
 import io.github.townyadvanced.flagwar.util.SkullCreator;
 import net.kyori.adventure.text.Component;
@@ -52,8 +53,8 @@ public class TimeGui implements Listener {
         ItemStack todayHead = SkullCreator.itemFromBase64("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWQ0NTJiZmNkYzNlYTE0ZjllNjEyYjFjOTZhYmVmOTdjMTBlOTZjNzExNmVhMmE0YjFhNWRmOGQ0YWExNzJmOSJ9fX0=");
         ItemMeta todayMeta = todayHead.getItemMeta();
         assert todayMeta != null;
-        todayMeta.displayName(Component.text("§r§f" + "Сегодня"));
-        todayMeta.lore(Messaging.formatForList(List.of("&cВы не можете начать", "&cВойну в этот день!")));
+        todayMeta.displayName(Component.text(Messages.dayGuiToday));
+        todayMeta.lore(Messaging.formatForList(Messages.dayGuiDisallowedDayLore));
         todayHead.setItemMeta(todayMeta);
         inventory.setItem(1, todayHead);
 
@@ -68,10 +69,10 @@ public class TimeGui implements Listener {
             long millisUntilDate = date.toInstant().toEpochMilli() - today.toInstant().toEpochMilli();
             long hoursUntilDate = millisUntilDate / (1000 * 60 * 60);
             List<String> lore = Arrays.asList("12", "13");
-            meta.lore(Messaging.formatForList(List.of("&cВы не можете начать", "&cвойну в этот день!")));
+            meta.lore(Messaging.formatForList(Messages.dayGuiDisallowedDayLore));
             if (hoursUntilDate >= 36) {
                 meta.displayName(Messaging.formatForComponent("&e" + dateString));
-                meta.lore(Messaging.formatForList(List.of("&aНажмите, чтобы выбрать", "&aдень начала войны!")));
+                meta.lore(Messaging.formatForList(Messages.dayGuiAllowedDayLore));
                 slots.add(i);
             }
             head.setItemMeta(meta);

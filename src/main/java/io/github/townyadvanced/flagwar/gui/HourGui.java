@@ -3,6 +3,7 @@ package io.github.townyadvanced.flagwar.gui;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.Town;
 import io.github.townyadvanced.flagwar.FlagWar;
+import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.storage.NewWar;
 import io.github.townyadvanced.flagwar.storage.SQLiteStorage;
 import io.github.townyadvanced.flagwar.util.Messaging;
@@ -65,10 +66,10 @@ public class HourGui implements Listener {
             long hoursUntilSelectedHour = millisUntilSelectedHour / (1000 * 60 * 60);
             if (hoursUntilSelectedHour >= 36) {
                 meta.displayName(Messaging.formatForComponent("&e" + hourString));
-                meta.lore(Messaging.formatForList(List.of("&aНажмите, чтобы выбрать", "&aэтот час войны!")));
+                meta.lore(Messaging.formatForList(Messages.hourGuiAllowedHourLore));
                 slots.add(i-12);
             } else {
-                meta.lore(Messaging.formatForList(List.of("&cВы не можете начать", "&cвойну в этот час!")));
+                meta.lore(Messaging.formatForList(Messages.hourGuiDisallowedHourLore));
             }
 
             hourHead.setItemMeta(meta);
