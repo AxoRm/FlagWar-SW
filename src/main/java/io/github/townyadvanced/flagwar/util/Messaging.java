@@ -23,8 +23,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
-import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
 import java.util.logging.Level;
