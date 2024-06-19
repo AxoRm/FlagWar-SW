@@ -71,6 +71,7 @@ import java.util.logging.Logger;
 
 import io.github.townyadvanced.flagwar.storage.SQLiteStorage;
 import io.github.townyadvanced.flagwar.util.Messaging;
+import io.github.townyadvanced.flagwar.war.FlagWarPlaceholderExtension;
 import io.github.townyadvanced.flagwar.war.WarManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -170,6 +171,9 @@ public class FlagWar extends JavaPlugin {
         brandingMessage();
         checkTowny();
         initializeListeners();
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new FlagWarPlaceholderExtension(this).register();
+        }
         loadFlagWarMaterials();
         registerEvents();
         new WarCommand();

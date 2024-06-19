@@ -46,6 +46,38 @@ public class WarManager {
         return null;
     }
 
+    public String getStatusPrefix(Player player) {
+        Town town = TownyAPI.getInstance().getTown(player);
+        if (town == null) return null;
+        for (Map.Entry<NewWar, WarProcess> entry : wars.entrySet()) {
+            Town attacker = entry.getKey().getAttacker();
+            Town defender = entry.getKey().getVictim();
+            if (attacker.equals(town)) {
+                return "&c◆";
+            }
+            if (defender.equals(town)) {
+                return "&9■";
+            }
+        }
+        return "";
+    }
+
+    public String getStatus(Player player) {
+        Town town = TownyAPI.getInstance().getTown(player);
+        if (town == null) return null;
+        for (Map.Entry<NewWar, WarProcess> entry : wars.entrySet()) {
+            Town attacker = entry.getKey().getAttacker();
+            Town defender = entry.getKey().getVictim();
+            if (attacker.equals(town)) {
+                return "&c◆";
+            }
+            if (defender.equals(town)) {
+                return "&9■";
+            }
+        }
+        return "";
+    }
+
     public WarProcess getWarProcess(Town town1, Town town2) {
         for (Map.Entry<NewWar, WarProcess> entry : wars.entrySet()) {
             Town attacker = entry.getKey().attacker;

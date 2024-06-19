@@ -27,3 +27,4 @@ softdepend:
 
 depend:
     - Towny
+    - PlaceholderAPI

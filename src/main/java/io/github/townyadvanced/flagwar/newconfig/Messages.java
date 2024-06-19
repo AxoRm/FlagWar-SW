@@ -52,7 +52,7 @@ public class Messages extends AbstractConfig {
     public static List<String> dayGuiAllowedDayLore = List.of("&aНажмите, чтобы выбрать", "&aдень начала войны!");
 
     public Messages() {
-        super(FlagWar.getInstance(), "messages.yml");
+        super(FlagWar.getFlagWar(), "messages.yml");
     }
 
     @Override
