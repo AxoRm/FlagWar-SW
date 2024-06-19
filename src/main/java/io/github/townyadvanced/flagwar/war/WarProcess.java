@@ -548,6 +548,7 @@ public class WarProcess implements Listener {
             if (resident.isOnline()) resident.sendMessage(Component.text("Вы выиграли в войне, жители вражеского города перешли в ваше владение! Также баланс города увеличился на " + defenderTown.getDebtBalance()*0.25));
         }
         HandlerList.unregisterAll(this);
+        FlagWar.warManager.FinishWar(war);
     }
 
     public void updateSpawnChunk() {
