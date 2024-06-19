@@ -16,19 +16,11 @@
 
 package io.github.townyadvanced.flagwar;
 
-import com.palmergames.bukkit.towny.Towny;
-import com.palmergames.bukkit.towny.TownyAPI;
-import com.palmergames.bukkit.towny.TownyEconomyHandler;
-import com.palmergames.bukkit.towny.TownyMessaging;
-import com.palmergames.bukkit.towny.TownyUniverse;
+import com.palmergames.bukkit.towny.*;
 import com.palmergames.bukkit.towny.exceptions.AlreadyRegisteredException;
 import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
 import com.palmergames.bukkit.towny.exceptions.TownyException;
-import com.palmergames.bukkit.towny.object.Nation;
-import com.palmergames.bukkit.towny.object.Resident;
-import com.palmergames.bukkit.towny.object.Town;
-import com.palmergames.bukkit.towny.object.TownBlock;
-import com.palmergames.bukkit.towny.object.WorldCoord;
+import com.palmergames.bukkit.towny.object.*;
 import com.palmergames.bukkit.towny.scheduling.TaskScheduler;
 import com.palmergames.bukkit.towny.scheduling.impl.BukkitTaskScheduler;
 import com.palmergames.bukkit.towny.scheduling.impl.FoliaTaskScheduler;
@@ -45,34 +37,15 @@ import io.github.townyadvanced.flagwar.events.CellDefendedEvent;
 import io.github.townyadvanced.flagwar.events.CellWonEvent;
 import io.github.townyadvanced.flagwar.i18n.LocaleUtil;
 import io.github.townyadvanced.flagwar.i18n.Translate;
-import io.github.townyadvanced.flagwar.listeners.FlagWarBlockListener;
-import io.github.townyadvanced.flagwar.listeners.FlagWarCustomListener;
-import io.github.townyadvanced.flagwar.listeners.FlagWarEntityListener;
-import io.github.townyadvanced.flagwar.listeners.WarzoneListener;
-import io.github.townyadvanced.flagwar.listeners.OutlawListener;
+import io.github.townyadvanced.flagwar.listeners.*;
 import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.objects.Cell;
 import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
-
-import java.io.IOException;
-
-import java.lang.reflect.Field;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import io.github.townyadvanced.flagwar.storage.SQLiteStorage;
 import io.github.townyadvanced.flagwar.util.Messaging;
 import io.github.townyadvanced.flagwar.war.FlagWarPlaceholderExtension;
 import io.github.townyadvanced.flagwar.war.WarManager;
+import io.github.townyadvanced.flagwar.war.WarProcess;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -83,6 +56,15 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The main class of the TownyAdvanced: FlagWar addon. Houses core functionality.
@@ -307,22 +289,21 @@ public class FlagWar extends JavaPlugin {
      * @throws TownyException if the Player's active flags would become greater than the Maximum per Player.
      * @throws TownyException if the attackCell is already registered in the {@link #ATTACK_HASH_MAP}.
      */
-    public static void registerAttack(final CellUnderAttack cell) throws TownyException {
+    public static void registerAttack(final CellUnderAttack cell, WarProcess war, boolean attacking) throws TownyException {
 
         CellUnderAttack attackCell = ATTACK_HASH_MAP.get(cell);
         String playerName = cell.getNameOfFlagOwner();
         checkCellAlreadyRegistered(attackCell);
-        checkPlayerActiveFlagLimit(playerName);
+        checkPlayerActiveFlagLimit(war, attacking);
 
         addFlagToPlayerCount(playerName, cell);
         ATTACK_HASH_MAP.put(cell, cell);
         cell.beginAttack();
     }
 
-    private static void checkPlayerActiveFlagLimit(final String playerName) throws TownyException {
-        if ((getNumActiveFlags(playerName) + 1) > FlagWarConfig.getMaxActiveFlagsPerPerson()) {
-            throw new TownyException(Translate.fromPrefixed("error.flag.max-flags-placed",
-                FlagWarConfig.getMaxActiveFlagsPerPerson()));
+    private static void checkPlayerActiveFlagLimit(WarProcess war, boolean attacking) throws TownyException {
+        if (war.getAllChunks().size()/15 >= (attacking ? war.attackersActiveFlags : war.defendersActiveFlags)) {
+            throw new TownyException(Messaging.formatForString(Messages.tooManyActiveFlags));
         }
     }
 
@@ -522,8 +503,7 @@ public class FlagWar extends JavaPlugin {
      * @return True if the attack was successful and after everything
      * @throws TownyException If the attack would be invalid. Not all returns are thrown exceptions.
      */
-    public static boolean callAttackCellEvent(final Towny towny, final Player player, final Block block,
-                                              final WorldCoord worldCoord) throws TownyException {
+    public static boolean callAttackCellEvent(final Towny towny, final Player player, final Block block, final WorldCoord worldCoord, WarProcess war, boolean attacking) throws TownyException {
 
         flagPlacementChecks(block);
 
@@ -535,36 +515,34 @@ public class FlagWar extends JavaPlugin {
         Nation attackingNation;
         TownBlock townBlock;
 
-        if (attackingResident == null || !attackingResident.hasNation()) {
-            throw new TownyException(Translate.fromPrefixed("error.player-not-in-nation"));
-        }
+        //if (attackingResident == null || !attackingResident.hasNation()) {
+        //    throw new TownyException(Translate.fromPrefixed("error.player-not-in-nation"));
+        //}
 
-        if (attackingResident.hasTown() && attackingResident.hasNation()) {
-            attackingTown = attackingResident.getTown();
-            attackingNation = attackingResident.getNation();
-        } else {
-            return false;
-        }
+        //if (attackingResident.hasTown() && attackingResident.hasNation()) {
+        //    attackingTown = attackingResident.getTown();
+        //    attackingNation = attackingResident.getNation();
+        //} else {
+        //    return false;
+        //}
 
-        if (attackingTown.getTownBlocks().isEmpty()) {
-            throw new TownyException(Translate.fromPrefixed("error.need-at-least-1-claim"));
-        }
+        //if (attackingTown.getTownBlocks().isEmpty()) {
+        //    throw new TownyException(Translate.fromPrefixed("error.need-at-least-1-claim"));
+        //}
 
         try {
-            landOwnerTown = worldCoord.getTownBlock().getTown();
             townBlock = worldCoord.getTownBlock();
-            landOwnerNation = landOwnerTown.getNation();
         } catch (NotRegisteredException e) {
             throw new TownyException(Translate.fromPrefixed("error.area-not-in-nation"));
         }
 
-        checkTargetPeaceful(player, townyUniverse, landOwnerNation, attackingNation);
+        //checkTargetPeaceful(player, townyUniverse, landOwnerNation, attackingNation);
 
-        checkPlayerLimits(landOwnerTown, attackingTown, landOwnerNation, attackingNation);
+        checkPlayerLimits(war);
 
         // Check that attack takes place on the edge of a town
         if (FlagWarConfig.isAttackingBordersOnly()
-            && !AreaSelectionUtil.isOnEdgeOfOwnership(landOwnerTown, worldCoord)) {
+            && !AreaSelectionUtil.isOnEdgeOfOwnership(attackingResident.getTown(), worldCoord)) {
             throw new TownyException(Translate.fromPrefixed("error.border-attack-only"));
         }
 
@@ -580,14 +558,14 @@ public class FlagWar extends JavaPlugin {
             calculateFeesAndFines(attackingResident, townBlock, costToPlaceWarFlag);
         }
 
-        if (!kickstartCellAttackEvent(player, block)) {
+        if (!kickstartCellAttackEvent(player, block, war, attacking)) {
             return false;
         }
         if (TownyEconomyHandler.isActive() && costToPlaceWarFlag.compareTo(BigDecimal.ZERO) > 0) {
             payForWarFlag(attackingResident.getPlayer(), costToPlaceWarFlag);
         }
 
-        setAttackerAsEnemy(landOwnerNation, attackingNation);
+        //setAttackerAsEnemy(landOwnerNation, attackingNation);
         towny.updateCache(worldCoord);
 
         String coordinates = worldCoord.toString();
@@ -596,7 +574,7 @@ public class FlagWar extends JavaPlugin {
         }
 
         TownyMessaging.sendGlobalMessage(Translate.fromPrefixed("broadcast.area.under_attack",
-            landOwnerTown.getFormattedName(), coordinates, attackingResident.getFormattedName()));
+            attackingResident.getTown().getFormattedName(), coordinates, attackingResident.getFormattedName()));
         return true;
     }
 
@@ -652,14 +630,8 @@ public class FlagWar extends JavaPlugin {
         }
     }
 
-    private static void checkPlayerLimits(final Town defendingTown,
-                                          final Town attackingTown,
-                                          final Nation defendingNation,
-                                          final Nation attackingNation) throws TownyException {
-        checkIfTownHasMinOnlineForWar(defendingTown);
-        checkIfNationHasMinOnlineForWar(defendingNation);
-        checkIfAttackingTownHasMinOnlineForWar(attackingTown);
-        checkIfAttackingNationHasMinOnlineForWar(attackingNation);
+    private static void checkPlayerLimits(WarProcess war) throws TownyException {
+        // TODO: Add checking of players
     }
 
     private static void payForWarFlag(final Player atkPlayer, final BigDecimal cost) {
@@ -682,8 +654,8 @@ public class FlagWar extends JavaPlugin {
      * @return TRUE if the event was kick-started successfully. FALSE if event canceled.
      * @throws TownyException if the CellAttackEvent is canceled with a given reason.
      */
-    private static boolean kickstartCellAttackEvent(final Player player, final Block block) throws TownyException {
-        var cellAttackEvent = new CellAttackEvent(player, block);
+    private static boolean kickstartCellAttackEvent(final Player player, final Block block, WarProcess war, boolean attacking) throws TownyException {
+        var cellAttackEvent = new CellAttackEvent(player, block, war, attacking);
         plugin.getServer().getPluginManager().callEvent(cellAttackEvent);
         if (cellAttackEvent.isCancelled()) {
             if (cellAttackEvent.hasReason()) {

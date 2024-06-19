@@ -51,6 +51,66 @@ public class Messages extends AbstractConfig {
     @Path(path= "gui.dayGui.allowedDayLore")
     public static List<String> dayGuiAllowedDayLore = List.of("&aНажмите, чтобы выбрать", "&aдень начала войны!");
 
+    @Path(path = "war.")
+    public static String tooManyActiveFlags = "&cВы превысили лимит на одновременный захват чанков";
+
+    @Path(path = "war.")
+    public static String warStartedTitle = "&cНачалась война";
+
+    @Path(path = "war.")
+    public static String warStartedSubTitleAttackers = "Вы будете телепортированы на поле битвы";
+
+    @Path(path = "war.")
+    public static String warStartedSubTitleDefenders = "Защитите свой город от противников";
+
+    @Path(path = "war.")
+    public static String respawnTitle = "Вы возродились!";
+
+    @Path(path = "war.")
+    public static String respawnSubTitle = "Используйте команду /returnwar, чтобы вернуться на поле боя";
+
+    @Path(path = "war.")
+    public static String reminderTitle = "Не забывайте!";
+
+    @Path(path = "war.")
+    public static String reminderSubTitle = "Вы можете вернуться на поле боя командой /returnwar";
+
+    @Path(path = "war.")
+    public static String autoTeleportMessage = "Вы автоматически возвращены на поле боя!";
+
+    @Path(path = "war.")
+    public static String returnBattleTitle = "Телепортация";
+
+    @Path(path = "war.")
+    public static String returnBattleSubTitle = "Вы были возвращены на поле боя";
+
+    @Path(path = "war.")
+    public static String teleportBattleMessage = "Вы были телепортированы на поле боя";
+
+    @Path(path = "war.")
+    public static String cauldronNotificationAttacker = "Вы успешно сделали котел на {0} чанков.";
+
+    @Path(path = "war.")
+    public static String cauldronNotificationDefender = "Вы потеряли в котле {0} чанков.";
+
+    @Path(path = "war.")
+    public static String lostMessageDefender = "Вы проиграли и были автоматически перемещены в жители города {0}";
+
+    @Path(path = "war.")
+    public static String winMessageAttacker = "Вы выиграли в войне, жители вражеского города перешли в ваше владение! Также баланс города увеличился на {0}";
+
+    @Path(path = "war.")
+    public static String joinNotificationTitle = "Внимание";
+
+    @Path(path = "war.")
+    public static String joinNotificationSubTitle = "В вашем городе идет бой!";
+
+    @Path(path = "war.")
+    public static String occupiedHomeBlockMessage = "Вы захватили главный чанк вражеского города";
+
+    @Path(path = "war.")
+    public static String leaveBattleMessage = "Игрок {0} покинул битву!";
+
     public Messages() {
         super(FlagWar.getFlagWar(), "messages.yml");
     }

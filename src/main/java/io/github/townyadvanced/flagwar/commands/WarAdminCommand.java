@@ -4,13 +4,9 @@ import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.object.Town;
 import com.palmergames.bukkit.towny.object.TownyObject;
 import io.github.townyadvanced.flagwar.FlagWar;
-import io.github.townyadvanced.flagwar.gui.Gui;
 import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.storage.NewWar;
 import io.github.townyadvanced.flagwar.util.Messaging;
-import io.github.townyadvanced.flagwar.war.WarManager;
-import io.github.townyadvanced.flagwar.war.WarProcess;
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -51,7 +47,7 @@ public class WarAdminCommand extends AbstractCommand {
                 sender.sendMessage(Messaging.formatForComponent(Messages.adminNotMayor));
                 return;
             }
-            Bukkit.getLogger().info("Here1");
+            //Bukkit.getLogger().info("Here1");
             if (args[0].equals("war")) {
                 NewWar war = new NewWar(town, townEnemy, ZonedDateTime.now(ZoneId.of("GMT+3")).plusSeconds(10));
                 FlagWar.warManager.startWar(war);

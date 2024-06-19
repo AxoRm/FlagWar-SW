@@ -19,12 +19,12 @@ package io.github.townyadvanced.flagwar.events;
 
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
 import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
+import io.github.townyadvanced.flagwar.war.WarProcess;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
@@ -63,8 +63,10 @@ public class CellAttackEvent extends Event implements Cancellable {
      * @param attacker the attacking {@link Player}.
      * @param flagBaseBlock the {@link Block} representing the War Flag base/pole.
      */
-    public CellAttackEvent(final Player attacker, final Block flagBaseBlock) {
+    public CellAttackEvent(final Player attacker, final Block flagBaseBlock, WarProcess war, boolean attacking) {
         super();
+        this.attacking = attacking;
+        this.war = war;
         this.player = attacker;
         this.flagBlock = flagBaseBlock;
         setPhaseDuration(FlagWarConfig.getFlagPhasesDuration());
@@ -135,5 +137,16 @@ public class CellAttackEvent extends Event implements Cancellable {
     /** @return true if the event has a cancel reason, besides "None" (default reason). */
     public boolean hasReason() {
         return !reason.equals("None");
+    }
+
+    WarProcess war;
+    boolean attacking;
+
+    public WarProcess getWar() {
+        return war;
+    }
+
+    public boolean isAttacking() {
+        return attacking;
     }
 }

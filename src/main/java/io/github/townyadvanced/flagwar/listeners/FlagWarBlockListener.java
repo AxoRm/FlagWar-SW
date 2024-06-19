@@ -17,9 +17,17 @@
 
 package io.github.townyadvanced.flagwar.listeners;
 
+import com.palmergames.bukkit.towny.Towny;
+import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.event.actions.TownyActionEvent;
-import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
-import com.palmergames.bukkit.towny.object.*;
+import com.palmergames.bukkit.towny.event.actions.TownyBuildEvent;
+import com.palmergames.bukkit.towny.exceptions.TownyException;
+import com.palmergames.bukkit.towny.object.Coord;
+import com.palmergames.bukkit.towny.object.Town;
+import com.palmergames.bukkit.towny.object.WorldCoord;
+import io.github.townyadvanced.flagwar.FlagWar;
+import io.github.townyadvanced.flagwar.config.FlagWarConfig;
+import io.github.townyadvanced.flagwar.war.WarProcess;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,13 +37,6 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
-
-import com.palmergames.bukkit.towny.Towny;
-import com.palmergames.bukkit.towny.event.actions.TownyBuildEvent;
-import com.palmergames.bukkit.towny.exceptions.TownyException;
-import com.palmergames.bukkit.towny.object.PlayerCache.TownBlockStatus;
-import io.github.townyadvanced.flagwar.FlagWar;
-import io.github.townyadvanced.flagwar.config.FlagWarConfig;
 
 /**
  * Listens for interactions with Blocks, then runs a check if qualified.
@@ -58,7 +59,6 @@ public class FlagWarBlockListener implements Listener {
 
     /**
      * Check if the {@link Player} from {@link TownyBuildEvent#getPlayer()} is attempting to build inside enemy lands,
-     * and if so, {@link #tryCallCellAttack(TownyActionEvent, Player, Block, WorldCoord)}.
      *
      * @param townyBuildEvent the {@link TownyBuildEvent}.
      */
@@ -74,13 +74,17 @@ public class FlagWarBlockListener implements Listener {
             return;
         }
 
-        var player = townyBuildEvent.getPlayer();
-        var block = player.getWorld().getBlockAt(townyBuildEvent.getLocation());
-        var worldCoord = new WorldCoord(block.getWorld().getName(), Coord.parseCoord(block));
+        Player player = townyBuildEvent.getPlayer();
+        Block block = player.getWorld().getBlockAt(townyBuildEvent.getLocation());
+        WorldCoord worldCoord = new WorldCoord(block.getWorld().getName(), Coord.parseCoord(block));
 
-        // TODO: REMAKE CHECKING WAR
-        if (towny.getCache(player).getStatus().equals(TownBlockStatus.ENEMY)) {
-            tryCallCellAttack(townyBuildEvent, player, block, worldCoord);
+        Town playerTown = TownyAPI.getInstance().getTown(player);
+
+        WarProcess war = FlagWar.warManager.getWar(playerTown);
+        if (war == null) return;
+
+        if (worldCoord.hasTown(war.getAggressorTown()) || worldCoord.hasTown(war.getDefenderTown())) {
+            tryCallCellAttack(townyBuildEvent, player, block, worldCoord, war, worldCoord.hasTown(war.getDefenderTown()));
         }
     }
 
@@ -146,7 +150,6 @@ public class FlagWarBlockListener implements Listener {
 
     /**
      * Wrapper for {@link TownyActionEvent} methods needing to run the
-     * {@link FlagWar#callAttackCellEvent(Towny, Player, Block, WorldCoord)} method and, if it would return true,
      * {@link TownyActionEvent#setCancelled(boolean)} to {@link Boolean#FALSE}.
      *
      * @param event the calling {@link TownyActionEvent}
@@ -154,9 +157,9 @@ public class FlagWarBlockListener implements Listener {
      * @param b the {@link Block} being passed along.
      * @param wC the {@link WorldCoord} being passed along.
      */
-    private void tryCallCellAttack(final TownyActionEvent event, final Player p, final Block b, final WorldCoord wC) {
+    private void tryCallCellAttack(final TownyActionEvent event, final Player p, final Block b, final WorldCoord wC, WarProcess war, boolean attacking) {
         try {
-            if (FlagWar.callAttackCellEvent(towny, p, b, wC)) {
+            if (FlagWar.callAttackCellEvent(towny, p, b, wC, war, attacking)) {
                 event.setCancelled(false);
             }
         } catch (TownyException townyException) {

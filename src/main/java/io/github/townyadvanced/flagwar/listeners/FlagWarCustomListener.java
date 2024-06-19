@@ -28,21 +28,16 @@ import com.palmergames.bukkit.towny.event.town.TownLeaveEvent;
 import com.palmergames.bukkit.towny.event.town.TownPreSetHomeBlockEvent;
 import com.palmergames.bukkit.towny.event.town.TownPreUnclaimCmdEvent;
 import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
-import com.palmergames.bukkit.towny.object.Nation;
-import com.palmergames.bukkit.towny.object.Resident;
-import com.palmergames.bukkit.towny.object.Town;
-import com.palmergames.bukkit.towny.object.TownBlock;
-import com.palmergames.bukkit.towny.object.TransactionType;
-import com.palmergames.bukkit.towny.object.WorldCoord;
+import com.palmergames.bukkit.towny.object.*;
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.FlagWarAPI;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
 import io.github.townyadvanced.flagwar.events.CellAttackCanceledEvent;
 import io.github.townyadvanced.flagwar.events.CellAttackEvent;
-import io.github.townyadvanced.flagwar.i18n.Translate;
-import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
 import io.github.townyadvanced.flagwar.events.CellDefendedEvent;
 import io.github.townyadvanced.flagwar.events.CellWonEvent;
+import io.github.townyadvanced.flagwar.i18n.Translate;
+import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -86,7 +81,6 @@ public class FlagWarCustomListener implements Listener {
 
     /**
      * If the {@link CellAttackEvent} fires, and has not been canceled, this method tries running
-     * {@link FlagWar#registerAttack(CellUnderAttack)} using the cell from the CellAttackEvent.
      * @param cellAttackEvent the associated CellAttackEvent.
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -97,7 +91,7 @@ public class FlagWarCustomListener implements Listener {
         }
 
         try {
-            FlagWar.registerAttack(cellAttackEvent.getData());
+            FlagWar.registerAttack(cellAttackEvent.getData(), cellAttackEvent.getWar(), cellAttackEvent.isAttacking());
         } catch (Exception e) {
             cellAttackEvent.setCancelled(true);
             cellAttackEvent.setReason(e.getMessage());
