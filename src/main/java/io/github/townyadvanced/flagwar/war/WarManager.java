@@ -13,23 +13,29 @@ import java.util.Set;
 
 public class WarManager {
     Set<NewWar> timedWars;
-    static HashMap<NewWar, PreWarProcess> map = new HashMap<>();
-    static HashMap<NewWar, WarProcess> wars = new HashMap<>();
+    HashMap<NewWar, PreWarProcess> map = new HashMap<>();
+    HashMap<NewWar, WarProcess> wars = new HashMap<>();
 
     public WarManager() {
         timedWars = SQLiteStorage.newWars;
         for (NewWar war : timedWars) {
-           map.put(war, new PreWarProcess(war));
+            startPreWarProcess(war);
         }
     }
     public void startPreWarProcess(NewWar war) {
         map.put(war, new PreWarProcess(war));
     }
+
+    public HashMap<NewWar, WarProcess> getWars() {
+        return wars;
+    }
+
     public void startWar(NewWar war) {
+        map.remove(war);
         wars.put(war, new WarProcess(war));
     }
 
-    public static WarProcess getWarProcessByPlayer(Player player) {
+    public WarProcess getWarProcessByPlayer(Player player) {
         Town town = TownyAPI.getInstance().getTown(player);
         if (town == null) return null;
         for (Map.Entry<NewWar, WarProcess> entry : wars.entrySet()) {
@@ -38,5 +44,30 @@ public class WarManager {
             return entry.getValue();
         }
         return null;
+    }
+
+    public WarProcess getWarProcess(Town town1, Town town2) {
+        for (Map.Entry<NewWar, WarProcess> entry : wars.entrySet()) {
+            Town attacker = entry.getKey().attacker;
+            Town defender = entry.getKey().victim;
+            if ((attacker.equals(town1) && defender.equals(town2)) ||
+                    (attacker.equals(town2) && defender.equals(town1))) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    public WarProcess getWar(Town town) {
+        for (Map.Entry<NewWar, WarProcess> entry : wars.entrySet()) {
+            Town attacker = entry.getKey().getAttacker();
+            Town defender = entry.getKey().getVictim();
+            if (!(attacker.equals(town) || defender.equals(town))) continue;
+            return entry.getValue();
+        }
+        return null;
+    }
+    public void FinishWar(NewWar war) {
+        wars.remove(war);
     }
 }

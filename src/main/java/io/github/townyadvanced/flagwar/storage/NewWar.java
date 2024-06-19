@@ -68,4 +68,8 @@ public class NewWar implements Listener {
     public Town getAttacker() {
         return attacker;
     }
+
+    public Town getVictim() {
+        return victim;
+    }
 }

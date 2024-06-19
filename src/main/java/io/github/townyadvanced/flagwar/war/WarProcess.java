@@ -5,11 +5,15 @@ import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.TownyMessaging;
 import com.palmergames.bukkit.towny.TownyUniverse;
+import com.palmergames.bukkit.towny.event.TownAddResidentEvent;
+import com.palmergames.bukkit.towny.event.actions.TownyBuildEvent;
 import com.palmergames.bukkit.towny.event.damage.TownyExplosionDamagesEntityEvent;
 import com.palmergames.bukkit.towny.event.damage.TownyPlayerDamageEntityEvent;
 import com.palmergames.bukkit.towny.event.damage.TownyPlayerDamagePlayerEvent;
 import com.palmergames.bukkit.towny.event.town.TownLeaveEvent;
 import com.palmergames.bukkit.towny.exceptions.AlreadyRegisteredException;
+import com.palmergames.bukkit.towny.exceptions.EmptyTownException;
+import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
 import com.palmergames.bukkit.towny.exceptions.TownyException;
 import com.palmergames.bukkit.towny.object.Resident;
 import com.palmergames.bukkit.towny.object.Town;
@@ -18,10 +22,15 @@ import com.palmergames.bukkit.towny.object.WorldCoord;
 import com.palmergames.bukkit.util.BukkitTools;
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
+import io.github.townyadvanced.flagwar.events.CellAttackCanceledEvent;
+import io.github.townyadvanced.flagwar.events.CellAttackEvent;
 import io.github.townyadvanced.flagwar.events.CellWonEvent;
 import io.github.townyadvanced.flagwar.i18n.Translate;
 import io.github.townyadvanced.flagwar.objects.Cell;
+import io.github.townyadvanced.flagwar.objects.CellUnderAttack;
 import io.github.townyadvanced.flagwar.storage.NewWar;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -29,7 +38,10 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -55,20 +67,64 @@ public class WarProcess implements Listener {
         return spawnLocation;
     }
 
+    public void setAggressorAlly(boolean aggressorAlly) {
+        this.aggressorAlly = aggressorAlly;
+    }
+
+    public void setDefenderAlly(boolean defenderAlly) {
+        this.defenderAlly = defenderAlly;
+    }
+
+    public boolean isDefenderAlly() {
+        return defenderAlly;
+    }
+
+    public boolean isAggressorAlly() {
+        return aggressorAlly;
+    }
+
+    public Town getAggressorTown() {
+        return aggressorTown;
+    }
+
+    public Town getDefenderTown() {
+        return defenderTown;
+    }
+
     Town defenderTown;
     List<Resident> aggressors;
     List<Resident> defenders;
     List<Resident> participants;
     List<Player> playerAggressors;
     List<Player> playerDefenders;
+    List<Resident> mayorsAgg = new ArrayList<>();
+    List<Resident> mayorsDef = new ArrayList<>();
     List<Player> playerParticipants;
+
+    public Set<Chunk> getAllChunks() {
+        return allChunks;
+    }
+
     Set<Chunk> warChunks;
     Set<Chunk> sideWarChunks;
     Set<Chunk> allChunks;
 
+    boolean aggressorAlly = false;
+    boolean defenderAlly = false;
+
+    Set<Resident> kickResidents;
+
     Set<Chunk> warMainChunks;
     Set<Chunk> sideWarMainChunks;
+    Set<Chunk> attackChunks;
 
+    Set<Chunk> aggressorWonChunks;
+
+    int initialSize;
+
+    TownBlock spawn;
+    Chunk spawnChunk;
+    Chunk newSpawnChunk;
     List<Player> online;
     List<Player> wasOnline;
     String warAggressorPrefix = "&c◆";
@@ -77,20 +133,23 @@ public class WarProcess implements Listener {
     String warDefenderPostfix = "&9■";
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Map<Player, BukkitTask> teleportTasks = new HashMap<>();
-    private final Map<Player, ScheduledFuture<?>> notificationTasks = new HashMap<>();
+    private final Map<Player, BukkitRunnable> notificationTasks = new HashMap<>();
     Location spawnLocation;
-
+    boolean isSpawnCaptured = false;
+    NewWar war;
     public WarProcess(NewWar war) {
+        this.war = war;
         Bukkit.getLogger().info("Here");
         this.defenderTown = war.victim;
         this.aggressorTown = war.attacker;
+        initialSize = defenderTown.getTownBlocks().size();
         startTime = war.warTime;
         this.aggressors = new ArrayList<>(aggressorTown.getResidents());
         this.defenders = new ArrayList<>(defenderTown.getResidents());
         this.participants = new ArrayList<>();
         this.participants.addAll(aggressors);
         this.participants.addAll(defenders);
-
+        this.kickResidents = new HashSet<>();
         this.playerAggressors = aggressors.stream().map(Resident::getPlayer).toList();
         this.playerDefenders = defenders.stream().map(Resident::getPlayer).toList();
         this.playerParticipants = new ArrayList<>();
@@ -104,14 +163,20 @@ public class WarProcess implements Listener {
         this.warChunks = new HashSet<>();
         this.sideWarChunks = new HashSet<>();
         this.allChunks = new HashSet<>();
-        Location spawn = null;
+        this.attackChunks = new HashSet<>();
+        this.aggressorWonChunks = new HashSet<>();
+        spawn = null;
         try {
-            spawn = defenderTown.getSpawn();
+            spawn = defenderTown.getHomeBlock();
         } catch (TownyException e) {
             //TODO: create auto spawn chooser or not allow war if spawn deleted.
         }
-        assert spawn != null;
-        Chunk spawnChunk = spawn.getChunk();
+        if (spawn == null) {
+            Bukkit.getLogger().info("");
+            return;
+        }
+        spawnChunk = Objects.requireNonNull(spawn.getWorld().getBukkitWorld()).getChunkAt(spawn.getX(), spawn.getZ());
+        newSpawnChunk = Objects.requireNonNull(spawn.getWorld().getBukkitWorld()).getChunkAt(spawn.getX(), spawn.getZ());
 
         // BFS для нахождения всех чанков, принадлежащих городу
         Queue<Chunk> queue = new LinkedList<>();
@@ -199,6 +264,36 @@ public class WarProcess implements Listener {
         startWar();
     }
 
+    public void summonAllies(Player player) {
+        if (playerAggressors.contains(player)) {
+            if (!aggressorTown.hasNation()) return;
+            try {
+                aggressorTown.getNation().getTowns().forEach(town -> {
+                    town.getMayor().sendMessage(Component.text("Вас пригласили на участие в войне! Пропишите команду /ally accept если хотите это сделать!"));
+                    mayorsAgg.add(town.getMayor());
+                });
+            } catch (NotRegisteredException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (playerAggressors.contains(player)) {
+            if (!defenderTown.hasNation()) return;
+            try {
+                defenderTown.getNation().getTowns().forEach(town -> {
+                    town.getMayor().sendMessage(Component.text("Вас пригласили на участие в войне! Пропишите команду /ally accept если хотите это сделать!"));
+                    mayorsDef.add(town.getMayor());
+                });
+            } catch (NotRegisteredException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void addAlly(Town town, Resident resident) {
+        if (mayorsDef.contains(resident)) {
+        }
+    }
+
     private void startWar() {
         for (Player player : playerAggressors) {
             if (player == null || !player.isOnline()) continue;
@@ -272,11 +367,15 @@ public class WarProcess implements Listener {
         player.sendTitle("Вы возродились!", "Используйте команду /returnwar, чтобы вернуться на поле боя", 10, 70, 20);
 
         // Schedule message every 5 minutes
-        ScheduledFuture<?> notification = scheduler.scheduleAtFixedRate(() -> {
-            if (player.isOnline()) {
-                player.sendTitle("Не забывайте!", "Вы можете вернуться на поле боя командой /returnwar", 10, 70, 20);
+        BukkitRunnable notificationTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (player.isOnline()) {
+                    player.sendTitle("Не забывайте!", "Вы можете вернуться на поле боя командой /returnwar", 10, 70, 20);
+                }
             }
-        }, 5, 5, TimeUnit.MINUTES);
+        };
+        notificationTask.runTaskTimer(FlagWar.getInstance(), 5 * 60 * 20, 5 * 60 * 20); // Every 5 minutes in ticks
 
         // Schedule teleport after 10 minutes if not returned
         BukkitTask task = new BukkitRunnable() {
@@ -286,7 +385,7 @@ public class WarProcess implements Listener {
                 player.sendMessage("Вы автоматически возвращены на поле боя!");
             }
         }.runTaskLater(FlagWar.getInstance(), 20 * 60 * 10); // 10 minutes in ticks
-        notificationTasks.put(player, notification);
+        notificationTasks.put(player, notificationTask);
         teleportTasks.put(player, task);
     }
 
@@ -295,7 +394,7 @@ public class WarProcess implements Listener {
             player.teleport(spawnLocation);
             player.sendTitle("Телепортация", "Вы были возвращены на поле боя", 10, 40, 20);
             if (notificationTasks.containsKey(player))
-                notificationTasks.get(player).cancel(true);
+                notificationTasks.get(player).cancel();
             notificationTasks.remove(player);
             if (teleportTasks.containsKey(player))
                 teleportTasks.get(player).cancel();
@@ -304,6 +403,7 @@ public class WarProcess implements Listener {
     }
 
     public void scanSurround(Chunk chunk) {
+        if (aggressorWonChunks.size() < 18) return;
         World world = chunk.getWorld();
         Town attackerTown = null;
         try {
@@ -338,6 +438,7 @@ public class WarProcess implements Listener {
             Set<Chunk> visitedChunks = new HashSet<>();
             queue.add(enemyChunk);
             visitedChunks.add(enemyChunk);
+            boolean flag = true;
             while (!queue.isEmpty()) {
                 Chunk currentChunk = queue.poll();
                 // Perform the BFS for adjacent enemy chunks
@@ -346,9 +447,10 @@ public class WarProcess implements Listener {
                     int newZ = currentChunk.getZ() + dir[1];
                     Chunk adjacentChunk = world.getChunkAt(newX, newZ);
                     TownBlock adjacentTownBlock = new WorldCoord(world.getName(), newX, newZ).getTownBlockOrNull();
-
-                    if (adjacentTownBlock == null || visitedChunks.contains(adjacentChunk)) continue;
+                    if (visitedChunks.contains(adjacentChunk)) continue;
+                    if (adjacentTownBlock == null) flag = false;
                     Town adjacentTown = adjacentTownBlock.getTownOrNull();
+                    if (adjacentTown == null) flag = false;
                     if (adjacentTown != null && !adjacentTown.equals(attackerTown) && !visitedChunks.contains(adjacentChunk)) {
                         Bukkit.getLogger().info("Founded chunk: " + adjacentChunk.getX() + " " + adjacentChunk.getZ());
                         visitedChunks.add(adjacentChunk);
@@ -361,7 +463,7 @@ public class WarProcess implements Listener {
                 }
             }
                 // If less than 4 enemy chunks are found, transfer them to attackerTown
-            if (visitedChunks.size() <= 4) {
+            if (visitedChunks.size() <= 4 && flag) {
                 for (Chunk foundChunk : visitedChunks) {
                     Bukkit.getLogger().info("--------------------------------------------------------");
                     Bukkit.getLogger().info("chunkX: " + foundChunk.getX() + " z: " + foundChunk.getZ());
@@ -416,10 +518,72 @@ public class WarProcess implements Listener {
         }
     }
 
+    public void addAlliesToDefender(Town town) {
+
+    }
+
+    public void winProcess() throws TownyException {
+        for (TownBlock block : defenderTown.getTownBlocks()) {
+            if (!defenderTown.getHomeBlock().equals(block)) {
+                transferOwnership(aggressorTown, block);
+            }
+        }
+        updateSpawnChunk();
+        for (Resident resident : aggressors) {
+            if (resident.isMayor()) continue;
+            try {
+                resident.setTown(aggressorTown);
+            } catch (Exception e) {
+                continue;
+            }
+        }
+        aggressorTown.setDebtBalance(aggressorTown.getDebtBalance() +defenderTown.getDebtBalance()*0.25);
+        defenderTown.setDebtBalance(0d);
+        defenderTown.removeNation();
+        defenderTown.setRuined(true);
+        for (Resident resident : defenders) {
+            if (resident.isOnline()) resident.sendMessage(Component.text("Вы проиграли и были автоматически перемещены в жители города " + aggressorTown.getName()));
+        }
+        for (Resident resident : aggressors) {
+            if (resident.isOnline()) resident.sendMessage(Component.text("Вы выиграли в войне, жители вражеского города перешли в ваше владение! Также баланс города увеличился на " + defenderTown.getDebtBalance()*0.25));
+        }
+        HandlerList.unregisterAll(this);
+    }
+
+    public void updateSpawnChunk() {
+        int range = this.initialSize - aggressorWonChunks.size();
+        int index = (int) (Math.random() * range);
+        TownBlock homeBlock = defenderTown.getTownBlocks().stream().toList().get(index);
+        newSpawnChunk = Objects.requireNonNull(homeBlock.getWorld().getBukkitWorld()).getChunkAt(homeBlock.getX(), homeBlock.getZ());
+        defenderTown.setHomeBlock(homeBlock);
+        // Найдите центр чанка
+        int centerX = homeBlock.getX() * 16 + 8;
+        int centerZ = homeBlock.getZ() * 16 + 8;
+
+        // Найдите самый верхний блок +1 по координате Y
+        int highestY = defenderTown.getWorld().getHighestBlockYAt(centerX, centerZ) + 1;
+
+        // Установите новый спавн для города
+        defenderTown.setSpawn(new Location(defenderTown.getWorld(), centerX, highestY, centerZ));
+    }
+
+    public void updateSpawnChunk(TownBlock spawn) {
+        defenderTown.setHomeBlock(spawn);
+        // Найдите центр чанка
+        int centerX = spawn.getX() * 16 + 8;
+        int centerZ = spawn.getZ() * 16 + 8;
+
+        // Найдите самый верхний блок +1 по координате Y
+        int highestY = defenderTown.getWorld().getHighestBlockYAt(centerX, centerZ) + 1;
+
+        // Установите новый спавн для города
+        defenderTown.setSpawn(new Location(defenderTown.getWorld(), centerX, highestY, centerZ));
+    }
+
+
     //EVENTS
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onAttackEvent(TownyPlayerDamagePlayerEvent damageEvent) {
+    public void onAttack(TownyPlayerDamagePlayerEvent damageEvent) {
         Town attackerTown = damageEvent.getAttackerTown();
         Town victimTown = damageEvent.getVictimTown();
         if (attackerTown == null || victimTown == null) return;
@@ -439,24 +603,6 @@ public class WarProcess implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onAttackEvent(TownyPlayerDamageEntityEvent damageEvent) {
-        Player attacker = damageEvent.getAttackingPlayer();
-        if (attacker == null) return;
-        if (participants.contains(towny.getResident(attacker))) {
-            if (allChunks.contains(damageEvent.getEntity().getChunk())) {
-                damageEvent.setCancelled(false);
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onExplosionDamagesEvent(TownyExplosionDamagesEntityEvent explosionDamagesEvent) {
-        if (!explosionDamagesEvent.isCancelled()) return;
-        Chunk chunk = explosionDamagesEvent.getLocation().getChunk();
-        if (allChunks.contains(chunk)) explosionDamagesEvent.setCancelled(false);
-    }
-
     @EventHandler
     public void onRespawnEvent(PlayerRespawnEvent respawnEvent) {
         Resident resident = towny.getResident(respawnEvent.getPlayer());
@@ -472,30 +618,58 @@ public class WarProcess implements Listener {
         if (!participants.contains(resident)) return;
         online.add(joinEvent.getPlayer());
         String message;
-        if (wasOnline.contains(joinEvent.getPlayer())) message = "Вы были возвращены на поле боя";
-        else message = "Вы были телепортированы на поле боя";
-        // Schedule teleport after 5 minutes if not returned
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-            if (joinEvent.getPlayer().isOnline()) {
-                joinEvent.getPlayer().teleport(spawnLocation);
-                joinEvent.getPlayer().sendTitle("Телепортация", message, 10, 70, 20);
-            }
-            }
-        }.runTaskLater(FlagWar.getInstance(), 20 * 60 * 5); // 5 minutes in ticks
+        if (aggressors.contains(resident)) {
+            if (wasOnline.contains(joinEvent.getPlayer())) message = "Вы были возвращены на поле боя";
+            else message = "Вы были телепортированы на поле боя";
+            // Schedule teleport after 5 minutes if not returned
+            BukkitTask task = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (joinEvent.getPlayer().isOnline()) {
+                        joinEvent.getPlayer().teleport(spawnLocation);
+                        joinEvent.getPlayer().sendTitle("Телепортация", message, 10, 70, 20);
+                    }
+                }
+            }.runTaskLater(FlagWar.getInstance(), 20 * 60 * 5); // 5 minutes in ticks
 
-        teleportTasks.put(joinEvent.getPlayer(), task);
+            teleportTasks.put(joinEvent.getPlayer(), task);
+        } else if (defenders.contains(resident)) {
+            message = "В вашем городе идет бой!";
+            joinEvent.getPlayer().sendTitle("Внимание", message, 10,70,20);
+        }
     }
 
     @EventHandler
-    public void onCellWonEvent(CellWonEvent cellWonEvent) {
+    public void onCellWonEvent(CellWonEvent cellWonEvent) throws TownyException {
         Player player = cellWonEvent.getCellOwner();
+        if (!playerParticipants.contains(player)) return;
         Cell cell = cellWonEvent.getCellUnderAttack();
         World world = Bukkit.getWorld(cell.getWorldName());
         int chunkX = cell.getX();
         int chunkZ = cell.getZ();
         Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+        Town town = towny.getTown(player);
+        if (town == null) return;
+        Bukkit.getLogger().info("Chunk: " + chunkX + " " + chunkZ);
+        if (town.equals(aggressorTown)) {
+            if (chunk.equals(spawnChunk)) {
+                isSpawnCaptured = true;
+                player.sendMessage(TextComponent.fromLegacyText("Вы захватили главный чанк вражеского города"));
+            }
+            if (chunk.equals(newSpawnChunk))
+                updateSpawnChunk();
+            aggressorWonChunks.add(chunk);
+        } else if (town.equals(defenderTown)) {
+            if (chunk.equals(spawnChunk)) {
+                isSpawnCaptured = false;
+                updateSpawnChunk(spawn);
+            }
+            aggressorWonChunks.remove(chunk);
+        }
+        if ((isSpawnCaptured && (double) (this.initialSize - aggressorWonChunks.size()) / this.initialSize <= 0.5) || ((double) (this.initialSize - aggressorWonChunks.size()) / this.initialSize <= 0.75)) {
+            winProcess();
+            return;
+        }
         scanSurround(chunk);
     }
     @EventHandler
@@ -506,4 +680,49 @@ public class WarProcess implements Listener {
             Objects.requireNonNull(towny.getTown(player)).getMayor().getPlayer().sendMessage("Милорд, школьник с ником + " + player.getName() + " покинул битву!");
         }
     }
+
+    @EventHandler
+    public void onCellAttackEvent(CellAttackEvent event) {
+        if (!playerParticipants.contains(event.getPlayer())) return;
+        World world = Bukkit.getWorld(event.getData().getWorldName());
+        if (world == null) return;
+        Chunk attacked = world.getChunkAt(event.getData().getX(), event.getData().getZ());
+        attackChunks.add(attacked);
+    }
+    @EventHandler
+    public void onCellAttackCancelEvent(CellAttackCanceledEvent event) {
+        World world = Bukkit.getWorld(event.getCell().getWorldName());
+        if (world == null) return;
+        Chunk attacked = world.getChunkAt(event.getCell().getX(), event.getCell().getZ());
+        attackChunks.remove(attacked);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onBreakBlock(BlockBreakEvent event) {
+        if (attackChunks.contains(event.getBlock().getChunk()))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlaceBlockEvent(BlockPlaceEvent event) {
+        if (attackChunks.contains(event.getBlock().getChunk()))
+            event.setCancelled(true);
+    }
+
+//    @EventHandler(priority = EventPriority.HIGHEST)
+//    public void onTownJoinEvent(TownAddResidentEvent event) {
+//        if (event.getTown() != aggressorTown && event.getTown() != defenderTown) return;
+//
+//        // Schedule the removal of the resident on the next tick
+//        Bukkit.getScheduler().runTask(FlagWar.getInstance(), () -> {
+//            try {
+//                event.getTown().removeResident(event.getResident());
+//                event.getResident().getPlayer().sendMessage(TextComponent.fromLegacyText("Вы не можете вступить в город во время войны!"));
+//            } catch (EmptyTownException e) {
+//                throw new RuntimeException(e);
+//            } catch (NotRegisteredException e) {
+//                throw new RuntimeException(e);
+//            }
+//        });
+//    }
 }

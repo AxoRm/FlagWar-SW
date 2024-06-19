@@ -1,5 +1,6 @@
 package io.github.townyadvanced.flagwar.commands;
 
+import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.war.WarManager;
 import io.github.townyadvanced.flagwar.war.WarProcess;
 import org.bukkit.Bukkit;
@@ -16,7 +17,7 @@ public class ReturnWarCommand extends AbstractCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        WarProcess process = WarManager.getWarProcessByPlayer((Player) sender);
+        WarProcess process = FlagWar.warManager.getWarProcessByPlayer((Player) sender);
         Bukkit.getLogger().info("Here");
         if (process == null) return;
         Bukkit.getLogger().info("Here");
