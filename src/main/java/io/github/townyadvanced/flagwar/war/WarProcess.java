@@ -138,6 +138,7 @@ public class WarProcess implements Listener {
     boolean isSpawnCaptured = false;
     NewWar war;
     public WarProcess(NewWar war) {
+        //TODO: написать игрокам что началась война и что нужно делать, можно использовать несколько title подряд.
         this.war = war;
         Bukkit.getLogger().info("Here");
         this.defenderTown = war.victim;
@@ -212,7 +213,7 @@ public class WarProcess implements Listener {
                 }
             }
         }
-        Bukkit.getLogger().info("Here");
+        Bukkit.getLogger().info("Here"); //TODO: УБРАТЬ ЛОГГИРОВАНИЕ
         // Добавляем чанки в радиусе 2 чанков от граничных чанков города
         Set<Chunk> additionalSideChunks = new HashSet<>();
         for (Chunk sideChunk : sideWarMainChunks) {
@@ -264,7 +265,7 @@ public class WarProcess implements Listener {
         startWar();
     }
 
-    public void summonAllies(Player player) {
+    public void summonAllies(Player player) { //TODO: реализовать механику союзников
         if (playerAggressors.contains(player)) {
             if (!aggressorTown.hasNation()) return;
             try {
