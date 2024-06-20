@@ -42,6 +42,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -168,90 +169,100 @@ public class WarProcess implements Listener {
         spawnChunk = Objects.requireNonNull(spawn.getWorld().getBukkitWorld()).getChunkAt(spawn.getX(), spawn.getZ());
         newSpawnChunk = Objects.requireNonNull(spawn.getWorld().getBukkitWorld()).getChunkAt(spawn.getX(), spawn.getZ());
         // TODO: Скорее всего нужно будет переместить в асихрон
-        // BFS для нахождения всех чанков, принадлежащих городу
-        Queue<Chunk> queue = new LinkedList<>();
-        Set<Chunk> visited = new HashSet<>();
-        warMainChunks = new HashSet<>();
-        sideWarMainChunks = new HashSet<>();
-        queue.add(spawnChunk);
-        visited.add(spawnChunk);
+        findWarChunksAsync().thenCompose(unused -> calculateWarStartLocationAsync()).thenAccept(location -> {
+            this.spawnLocation = location;
+            startWar();
+        }).exceptionally(ex -> {
+            Bukkit.getLogger().severe("Failed to initialize war chunks or calculate start location: " + ex.getMessage());
+            return null;
+        });
+    }
 
-        while (!queue.isEmpty()) {
-            Chunk currentChunk = queue.poll();
-            warMainChunks.add(currentChunk);
-            int chunkX = currentChunk.getX();
-            int chunkZ = currentChunk.getZ();
-            World world = currentChunk.getWorld();
+    private CompletableFuture<Void> findWarChunksAsync() {
+        return CompletableFuture.runAsync(() -> {
+            Queue<Chunk> queue = new LinkedList<>();
+            Set<Chunk> visited = new HashSet<>();
+            warMainChunks = new HashSet<>();
+            sideWarMainChunks = new HashSet<>();
+            queue.add(spawnChunk);
+            visited.add(spawnChunk);
 
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    if (dx == 0 && dz == 0) continue; // Пропускаем текущий чанк
-                    Chunk adjacentChunk = world.getChunkAt(chunkX + dx, chunkZ + dz);
+            while (!queue.isEmpty()) {
+                Chunk currentChunk = queue.poll();
+                warMainChunks.add(currentChunk);
+                int chunkX = currentChunk.getX();
+                int chunkZ = currentChunk.getZ();
+                World world = currentChunk.getWorld();
 
-                    if (!visited.contains(adjacentChunk)) {
-                        WorldCoord coord = new WorldCoord(world.getName(), chunkX + dx, chunkZ + dz);
-                        TownBlock townBlock = coord.getTownBlockOrNull();
-                        if (townBlock != null && townBlock.getTownOrNull() == defenderTown) {
-                            queue.add(adjacentChunk);
-                        } else {
-                            // Если это граничный чанк, добавляем его в sideWarMainChunks
-                            sideWarMainChunks.add(adjacentChunk);
-                        }
-                        visited.add(adjacentChunk);
-                    }
-                }
-            }
-        }
-        //Bukkit.getLogger().info("Here");
-        // Добавляем чанки в радиусе 2 чанков от граничных чанков города
-        Set<Chunk> additionalSideChunks = new HashSet<>();
-        for (Chunk sideChunk : sideWarMainChunks) {
-            int chunkX = sideChunk.getX();
-            int chunkZ = sideChunk.getZ();
-            World world = sideChunk.getWorld();
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        if (dx == 0 && dz == 0) continue; // Пропускаем текущий чанк
+                        Chunk adjacentChunk = world.getChunkAt(chunkX + dx, chunkZ + dz);
 
-            for (int dx = -2; dx <= 2; dx++) {
-                for (int dz = -2; dz <= 2; dz++) {
-                    Chunk adjacentChunk = world.getChunkAt(chunkX + dx, chunkZ + dz);
-                    if (!warMainChunks.contains(adjacentChunk) && !sideWarMainChunks.contains(adjacentChunk)) {
-                        additionalSideChunks.add(adjacentChunk);
-                    }
-                }
-            }
-        }
-        sideWarMainChunks.addAll(additionalSideChunks);
-        // Add all chunks of the defender town to warChunks
-        Set<WorldCoord> townCoords = new HashSet<>();
-        for (TownBlock townBlock : defenderTown.getTownBlocks()) {
-            World world = Bukkit.getWorld(townBlock.getWorld().getName());
-            if (world != null) {
-                Chunk chunk = world.getChunkAt(townBlock.getX(), townBlock.getZ());
-                warChunks.add(chunk);
-                townCoords.add(townBlock.getWorldCoord());
-            }
-        }
-        //Bukkit.getLogger().info("Here");
-        // Add chunks around the town that are within 2 chunks distance to sideWarChunks
-        for (WorldCoord coord : townCoords) {
-            World world = Bukkit.getWorld(coord.getWorldName());
-            if (world != null) {
-                for (int x = -2; x <= 2; x++) {
-                    for (int z = -2; z <= 2; z++) {
-                        WorldCoord adjacentCoord = new WorldCoord(coord.getWorldName(), coord.getX() + x, coord.getZ() + z);
-                        if (!townCoords.contains(adjacentCoord)) {
-                            Chunk adjacentChunk = world.getChunkAt(adjacentCoord.getX(), adjacentCoord.getZ());
-                            sideWarChunks.add(adjacentChunk);
+                        if (!visited.contains(adjacentChunk)) {
+                            WorldCoord coord = new WorldCoord(world.getName(), chunkX + dx, chunkZ + dz);
+                            TownBlock townBlock = coord.getTownBlockOrNull();
+                            if (townBlock != null && townBlock.getTownOrNull() == defenderTown) {
+                                queue.add(adjacentChunk);
+                            } else {
+                                // Если это граничный чанк, добавляем его в sideWarMainChunks
+                                sideWarMainChunks.add(adjacentChunk);
+                            }
+                            visited.add(adjacentChunk);
                         }
                     }
                 }
             }
-        }
-        // Combine warChunks and sideWarChunks into allChunks
-        allChunks.addAll(warChunks);
-        allChunks.addAll(sideWarChunks);
-        this.spawnLocation = calculateWarStartLocation();
-        //Bukkit.getLogger().info("Here");
-        startWar();
+
+            // Добавляем чанки в радиусе 2 чанков от граничных чанков города
+            Set<Chunk> additionalSideChunks = new HashSet<>();
+            for (Chunk sideChunk : sideWarMainChunks) {
+                int chunkX = sideChunk.getX();
+                int chunkZ = sideChunk.getZ();
+                World world = sideChunk.getWorld();
+
+                for (int dx = -2; dx <= 2; dx++) {
+                    for (int dz = -2; dz <= 2; dz++) {
+                        Chunk adjacentChunk = world.getChunkAt(chunkX + dx, chunkZ + dz);
+                        if (!warMainChunks.contains(adjacentChunk) && !sideWarMainChunks.contains(adjacentChunk)) {
+                            additionalSideChunks.add(adjacentChunk);
+                        }
+                    }
+                }
+            }
+            sideWarMainChunks.addAll(additionalSideChunks);
+
+            // Add all chunks of the defender town to warChunks
+            Set<WorldCoord> townCoords = new HashSet<>();
+            for (TownBlock townBlock : defenderTown.getTownBlocks()) {
+                World world = Bukkit.getWorld(townBlock.getWorld().getName());
+                if (world != null) {
+                    Chunk chunk = world.getChunkAt(townBlock.getX(), townBlock.getZ());
+                    warChunks.add(chunk);
+                    townCoords.add(townBlock.getWorldCoord());
+                }
+            }
+
+            // Add chunks around the town that are within 2 chunks distance to sideWarChunks
+            for (WorldCoord coord : townCoords) {
+                World world = Bukkit.getWorld(coord.getWorldName());
+                if (world != null) {
+                    for (int x = -2; x <= 2; x++) {
+                        for (int z = -2; z <= 2; z++) {
+                            WorldCoord adjacentCoord = new WorldCoord(coord.getWorldName(), coord.getX() + x, coord.getZ() + z);
+                            if (!townCoords.contains(adjacentCoord)) {
+                                Chunk adjacentChunk = world.getChunkAt(adjacentCoord.getX(), adjacentCoord.getZ());
+                                sideWarChunks.add(adjacentChunk);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Combine warChunks and sideWarChunks into allChunks
+            allChunks.addAll(warChunks);
+            allChunks.addAll(sideWarChunks);
+        });
     }
 
     public void summonAllies(Player player) { //TODO: реализовать механику союзников
@@ -302,20 +313,22 @@ public class WarProcess implements Listener {
         this.spawnLocation = spawnLocation;
     }
 
-    public Location calculateWarStartLocation() {
-        for (Chunk chunk : sideWarMainChunks) {
-            if (isOnBorder(chunk)) {
-                if (hasNoEnemyPlayersNearby(chunk)) {
-                    // Return the center of the chunk as the start location
-                    World world = chunk.getWorld();
-                    int x = chunk.getX() * 16 + 8;
-                    int z = chunk.getZ() * 16 + 8;
-                    int y = world.getHighestBlockYAt(x, z);
-                    return new Location(world, x, y+1, z);
+    public CompletableFuture<Location> calculateWarStartLocationAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            for (Chunk chunk : sideWarMainChunks) {
+                if (isOnBorder(chunk)) {
+                    if (hasNoEnemyPlayersNearby(chunk)) {
+                        // Return the center of the chunk as the start location
+                        World world = chunk.getWorld();
+                        int x = chunk.getX() * 16 + 8;
+                        int z = chunk.getZ() * 16 + 8;
+                        int y = world.getHighestBlockYAt(x, z);
+                        return new Location(world, x, y + 1, z);
+                    }
                 }
             }
-        }
-        return null; // No suitable location found
+            return null; // No suitable location found
+        });
     }
 
     private boolean isOnBorder(Chunk chunk) {
