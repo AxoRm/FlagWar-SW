@@ -724,7 +724,7 @@ public class WarProcess implements Listener {
     @EventHandler
     public void onTownLeaveEvent(TownLeaveEvent event) {
         if (participants.contains(event.getResident())) {
-            event.getResident().sendMessage(Messaging.formatForComponentAdventure("&cВы не можете покинуть город во время войны"));
+            event.getResident().sendMessage(Messaging.formatForComponentAdventure("&cВы не можете покинуть город во время войны!"));
             event.setCancelled(true);
         }
     }
