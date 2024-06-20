@@ -84,6 +84,10 @@ public final class Messaging {
         return ChatColor.translateAlternateColorCodes('&', s);
     }
 
+    public static com.palmergames.adventure.text.Component formatForComponentAdventure(String s) {
+        return com.palmergames.adventure.text.Component.text(formatForString(s));
+    }
+
     public static Component formatForComponent(String s) {
         return Component.text(ChatColor.translateAlternateColorCodes('&', s));
     }

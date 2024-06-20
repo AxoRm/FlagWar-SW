@@ -5,7 +5,10 @@ import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.TownyMessaging;
 import com.palmergames.bukkit.towny.TownyUniverse;
+import com.palmergames.bukkit.towny.event.TownAddResidentEvent;
 import com.palmergames.bukkit.towny.event.damage.TownyPlayerDamagePlayerEvent;
+import com.palmergames.bukkit.towny.event.town.TownLeaveEvent;
+import com.palmergames.bukkit.towny.exceptions.EmptyTownException;
 import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
 import com.palmergames.bukkit.towny.exceptions.TownyException;
 import com.palmergames.bukkit.towny.object.Resident;
@@ -718,20 +721,28 @@ public class WarProcess implements Listener {
             event.setCancelled(true);
     }
 
-//    @EventHandler(priority = EventPriority.HIGHEST)
-//    public void onTownJoinEvent(TownAddResidentEvent event) {
-//        if (event.getTown() != aggressorTown && event.getTown() != defenderTown) return;
-//
-//        // Schedule the removal of the resident on the next tick
-//        Bukkit.getScheduler().runTask(FlagWar.getInstance(), () -> {
-//            try {
-//                event.getTown().removeResident(event.getResident());
-//                event.getResident().getPlayer().sendMessage(TextComponent.fromLegacyText("Вы не можете вступить в город во время войны!"));
-//            } catch (EmptyTownException e) {
-//                throw new RuntimeException(e);
-//            } catch (NotRegisteredException e) {
-//                throw new RuntimeException(e);
-//            }
-//        });
-//    }
+    @EventHandler
+    public void onTownLeaveEvent(TownLeaveEvent event) {
+        if (participants.contains(event.getResident())) {
+            event.getResident().sendMessage(Messaging.formatForComponentAdventure("&cВы не можете покинуть город во время войны"));
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onTownJoinEvent(TownAddResidentEvent event) {
+        if (event.getTown() != aggressorTown && event.getTown() != defenderTown) return;
+
+        // Schedule the removal of the resident on the next tick
+        Bukkit.getScheduler().runTask(FlagWar.getInstance(), () -> {
+            try {
+                event.getTown().removeResident(event.getResident());
+                event.getResident().getPlayer().sendMessage(TextComponent.fromLegacyText("Вы не можете вступить в город во время войны!"));
+            } catch (EmptyTownException e) {
+                throw new RuntimeException(e);
+            } catch (NotRegisteredException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
 }
