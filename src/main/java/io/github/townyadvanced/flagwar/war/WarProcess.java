@@ -44,7 +44,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -317,11 +316,11 @@ public class WarProcess implements Listener {
             player.teleport(spawnLocation);
             player.sendMessage("Вы телепортированы на поле боя!");
 
-            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleAttackers), 1, 1, 1);
+            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleAttackers), 10, 80, 20);
         }
         for (Player player: playerDefenders) {
             if (player == null || !player.isOnline()) continue;
-            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleDefenders), 1, 1, 1);
+            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleDefenders),  10, 80, 20);
         }
     }
 
@@ -557,7 +556,7 @@ public class WarProcess implements Listener {
                 continue;
             }
         }
-        for (Resident resident : aggressors) {
+        for (Resident resident : defenders) {
             if (resident.isMayor()) continue;
             try {
                 resident.setTown(aggressorTown);
@@ -585,9 +584,8 @@ public class WarProcess implements Listener {
     public void looseProcess() {
         for (Chunk chunk : aggressorWonChunks) {
             TownBlock block = new TownBlock(chunk.getX(), chunk.getZ(), Objects.requireNonNull(towny.getTownyWorld(chunk.getWorld())));
-            transferOwnership(aggressorTown, block);
+            transferOwnership(defenderTown, block);
         }
-        defenderTown.setHomeBlock(spawn);
 //        for (Resident resident : defenders) { TODO: ПЛЕН для проигравших 25%
 //            if (resident.isMayor()) continue;
 //            try {
@@ -599,10 +597,10 @@ public class WarProcess implements Listener {
         defenderTown.setDebtBalance(defenderTown.getDebtBalance() + aggressorTown.getDebtBalance()*0.25);
         aggressorTown.setDebtBalance(0d);
         for (Resident resident : defenders) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName())))); //TODO: сообщения проигравшим
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageDefender, aggressorTown.getName())))); //TODO: сообщения проигравшим
         }
         for (Resident resident : aggressors) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
         }
         HandlerList.unregisterAll(this);
         FlagWar.warManager.FinishWar(war);
@@ -789,5 +787,9 @@ public class WarProcess implements Listener {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    public Set<Chunk> getWarChunks() {
+        return warChunks;
     }
 }

@@ -116,7 +116,7 @@ public class PreWarProcess implements Listener {
         // Send action bar message
         player.sendActionBar(Messaging.formatForString(message));
         // Send title message
-        player.sendTitle(Messaging.formatForString(attacker? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 70, 20);
+        player.sendTitle(Messaging.formatForString(attacker? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 140, 20);
         // Send chat message
         player.sendMessage(Messaging.formatForString(message));
     }

@@ -96,8 +96,14 @@ public class Messages extends AbstractConfig {
     @Path(path = "war.lostMessageDefender")
     public static String lostMessageDefender = "Вы проиграли и были автоматически перемещены в жители города {0}";
 
+    @Path(path = "war.lostMessageAttacker")
+    public static String lostMessageAttacker = "Вы проиграли в этой войне. Часть ваших жителей было перемещено в плен города {0}";
+
     @Path(path = "war.winMessageAttacker")
     public static String winMessageAttacker = "Вы выиграли в войне, жители вражеского города перешли в ваше владение! Также баланс города увеличился на {0}";
+
+    @Path(path = "war.winMessageDefender")
+    public static String winMessageDefender = "Вы выиграли в войне, часть жителей вражеского города попало в плен! Также баланс города увеличился на {0}";
 
     @Path(path = "war.joinNotificationTitle")
     public static String joinNotificationTitle = "Внимание";
@@ -110,9 +116,6 @@ public class Messages extends AbstractConfig {
 
     @Path(path = "war.leaveBattleMessage")
     public static String leaveBattleMessage = "Игрок {0} покинул битву!";
-
-    @Path(path = "war.winMessageDefender")
-    public static String winMessageDefender = "Вы успешно победили в войне с {0}";
 
     @Path(path = "war.looseMessageAttacker")
     public static String looseMessageAttacker = "Вы не смогли победить в войне с {0}";
