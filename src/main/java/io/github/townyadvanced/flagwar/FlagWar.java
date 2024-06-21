@@ -294,17 +294,28 @@ public class FlagWar extends JavaPlugin {
         CellUnderAttack attackCell = ATTACK_HASH_MAP.get(cell);
         String playerName = cell.getNameOfFlagOwner();
         checkCellAlreadyRegistered(attackCell);
-        checkPlayerActiveFlagLimit(war, attacking);
+        if (checkPlayerActiveFlagLimit(war, attacking)) {
+            if (attacking) war.attackersActiveFlags++;
+            else war.defendersActiveFlags++;
+        } else {
+            Player player = Bukkit.getPlayer(playerName);
+            if (player == null) {
+                return;
+            }
 
-        addFlagToPlayerCount(playerName, cell);
+            player.sendMessage(Messaging.formatForString(Messages.tooManyActiveFlags));
+            return;
+        }
+
         ATTACK_HASH_MAP.put(cell, cell);
         cell.beginAttack();
     }
 
-    private static void checkPlayerActiveFlagLimit(WarProcess war, boolean attacking) throws TownyException {
+    private static boolean checkPlayerActiveFlagLimit(WarProcess war, boolean attacking) throws TownyException {
         if (war.getAllChunks().size()/15 >= (attacking ? war.attackersActiveFlags : war.defendersActiveFlags)) {
-            throw new TownyException(Messaging.formatForString(Messages.tooManyActiveFlags));
+            return false;
         }
+        return true;
     }
 
     private static void checkCellAlreadyRegistered(final CellUnderAttack attackCell) throws AlreadyRegisteredException {
