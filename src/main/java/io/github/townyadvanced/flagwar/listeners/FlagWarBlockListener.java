@@ -19,6 +19,7 @@ package io.github.townyadvanced.flagwar.listeners;
 
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyAPI;
+import com.palmergames.bukkit.towny.TownyUniverse;
 import com.palmergames.bukkit.towny.event.actions.TownyActionEvent;
 import com.palmergames.bukkit.towny.event.actions.TownyBuildEvent;
 import com.palmergames.bukkit.towny.exceptions.TownyException;
@@ -84,7 +85,8 @@ public class FlagWarBlockListener implements Listener {
         if (war == null) return;
 
         if (worldCoord.hasTown(war.getAggressorTown()) || worldCoord.hasTown(war.getDefenderTown())) {
-            tryCallCellAttack(townyBuildEvent, player, block, worldCoord, war, worldCoord.hasTown(war.getDefenderTown()));
+            if (worldCoord.getTownOrNull() == playerTown) return;
+            tryCallCellAttack(townyBuildEvent, player, block, worldCoord, war, war.getAggressorTown() == playerTown);
         }
     }
 

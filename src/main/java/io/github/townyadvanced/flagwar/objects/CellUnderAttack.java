@@ -30,6 +30,7 @@ import io.github.townyadvanced.flagwar.HologramUpdateThread;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
 import io.github.townyadvanced.flagwar.i18n.Translate;
 import io.github.townyadvanced.flagwar.util.Messaging;
+import io.github.townyadvanced.flagwar.war.WarProcess;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -63,6 +64,7 @@ public class CellUnderAttack extends Cell {
     private final Block flagLightBlock;
     /** Holds the value between timer phases for both the war flag and the beacon. */
     private final Duration flagPhaseDuration;
+    public final WarProcess war;
     /** {@link List} of {@link Block}s used in the war beacon's body. */
     private List<Block> beaconFlagBlocks;
     /** {@link List} of {@link Block}s used for the war beacon's wireframe. */
@@ -91,8 +93,9 @@ public class CellUnderAttack extends Cell {
      * @param base {@link Block} representing the "flag pole" of the block
      * @param timerPhase Time (as a long) between Material shifting the flag and beacon.
      */
-    public CellUnderAttack( Player flagOwner, final Block base, final Duration timerPhase) {
+    public CellUnderAttack(Player flagOwner, final Block base, final Duration timerPhase, WarProcess war) {
         super(base.getLocation());
+        this.war = war;
         this.nameOfFlagOwner = flagOwner.getName();
         this.flagBaseBlock = base;
         this.flagPhaseID = 0;

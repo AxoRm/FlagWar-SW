@@ -557,7 +557,7 @@ public class WarProcess implements Listener {
                 continue;
             }
         }
-        for (Resident resident : defenders) {
+        for (Resident resident : aggressors) {
             if (resident.isMayor()) continue;
             try {
                 resident.setTown(aggressorTown);
@@ -573,7 +573,7 @@ public class WarProcess implements Listener {
         aggressorTown.removeEnemy(defenderTown);
 
         for (Resident resident : defenders) {
-            if (resident.isOnline() && !resident.isMayor()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName()))));
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName()))));
         }
         for (Resident resident : aggressors) {
             if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
