@@ -44,10 +44,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class WarProcess implements Listener {
     TownyAPI towny = TownyAPI.getInstance();
@@ -179,8 +181,15 @@ public class WarProcess implements Listener {
             Bukkit.getLogger().severe("Failed to initialize war chunks or calculate start location: " + ex.getMessage());
             return null;
         });
+        for (int hour = 1; hour <= 5; hour ++) {
+            int finalHour = hour;
+            scheduler.schedule(() -> checkWarFinish(finalHour), hour, TimeUnit.HOURS);
+        }
     }
 
+    private void checkWarFinish(int x) {
+        if ((double) aggressorWonChunks.size() / warChunks.size() < (double) 15*x/100) looseProcess();
+    }
     private CompletableFuture<Void> findWarChunksAsync() {
         return CompletableFuture.runAsync(() -> {
             Queue<Chunk> queue = new LinkedList<>();
@@ -534,13 +543,16 @@ public class WarProcess implements Listener {
 
     }
 
-    public void winProcess() throws TownyException {
+    public void winProcess() {
         for (TownBlock block : defenderTown.getTownBlocks()) {
-            if (!defenderTown.getHomeBlock().equals(block)) {
-                transferOwnership(aggressorTown, block);
+            try {
+                if (!defenderTown.getHomeBlock().equals(block)) {
+                    transferOwnership(aggressorTown, block);
+                }
+            } catch (TownyException e) {
+                continue;
             }
         }
-        updateSpawnChunk();
         for (Resident resident : aggressors) {
             if (resident.isMayor()) continue;
             try {
@@ -555,6 +567,32 @@ public class WarProcess implements Listener {
         defenderTown.setRuined(true);
         for (Resident resident : defenders) {
             if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName()))));
+        }
+        for (Resident resident : aggressors) {
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
+        }
+        HandlerList.unregisterAll(this);
+        FlagWar.warManager.FinishWar(war);
+    }
+
+    public void looseProcess() {
+        for (Chunk chunk : aggressorWonChunks) {
+            TownBlock block = new TownBlock(chunk.getX(), chunk.getZ(), Objects.requireNonNull(towny.getTownyWorld(chunk.getWorld())));
+            transferOwnership(aggressorTown, block);
+        }
+        defenderTown.setHomeBlock(spawn);
+//        for (Resident resident : defenders) { TODO: ПЛЕН для проигравших 25%
+//            if (resident.isMayor()) continue;
+//            try {
+//                resident.setTown(defenderTown);
+//            } catch (Exception e) {
+//                continue;
+//            }
+//        }
+        defenderTown.setDebtBalance(defenderTown.getDebtBalance() + aggressorTown.getDebtBalance()*0.25);
+        aggressorTown.setDebtBalance(0d);
+        for (Resident resident : defenders) {
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName())))); //TODO: сообщения проигравшим
         }
         for (Resident resident : aggressors) {
             if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
@@ -678,7 +716,7 @@ public class WarProcess implements Listener {
             }
             aggressorWonChunks.remove(chunk);
         }
-        if ((isSpawnCaptured && (double) (this.initialSize - aggressorWonChunks.size()) / this.initialSize <= 0.5) || ((double) (this.initialSize - aggressorWonChunks.size()) / this.initialSize <= 0.75)) {
+        if ((isSpawnCaptured && (double) aggressorWonChunks.size() / this.initialSize >= 0.5) || ((double) aggressorWonChunks.size() / this.initialSize >= 0.75)) {
             winProcess();
             return;
         }
