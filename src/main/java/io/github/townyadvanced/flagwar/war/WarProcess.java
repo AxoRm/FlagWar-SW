@@ -101,6 +101,10 @@ public class WarProcess implements Listener {
         return allChunks;
     }
 
+    public Set<Chunk> getWarChunks() {
+        return warChunks;
+    }
+
     Set<Chunk> warChunks;
     Set<Chunk> sideWarChunks;
     Set<Chunk> allChunks;
@@ -573,7 +577,7 @@ public class WarProcess implements Listener {
         aggressorTown.removeEnemy(defenderTown);
 
         for (Resident resident : defenders) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName()))));
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getFormattedName()))));
         }
         for (Resident resident : aggressors) {
             if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
@@ -597,12 +601,12 @@ public class WarProcess implements Listener {
 //            }
 //        }
         defenderTown.setDebtBalance(defenderTown.getDebtBalance() + aggressorTown.getDebtBalance()*0.25);
-        aggressorTown.setDebtBalance(0d);
+        aggressorTown.setDebtBalance(aggressorTown.getDebtBalance()*0.75);
         for (Resident resident : defenders) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName())))); //TODO: сообщения проигравшим
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageDefender, aggressorTown.getFormattedName(), String.valueOf(aggressorTown.getDebtBalance()*0.25)))));
         }
         for (Resident resident : aggressors) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.looseMessageAttacker, defenderTown.getFormattedName()))));
         }
         HandlerList.unregisterAll(this);
         FlagWar.warManager.FinishWar(war);

@@ -285,11 +285,12 @@ public class FlagWar extends JavaPlugin {
      * {@link #addFlagToPlayerCount(String, CellUnderAttack)}), add it to the {@link #ATTACK_HASH_MAP}, and run
      * {@link CellUnderAttack#beginAttack()}.
      *
-     * @param cell CellUnderAttack to process.
+     * @param cell            CellUnderAttack to process.
+     * @param cellAttackEvent
      * @throws TownyException if the Player's active flags would become greater than the Maximum per Player.
      * @throws TownyException if the attackCell is already registered in the {@link #ATTACK_HASH_MAP}.
      */
-    public static void registerAttack(final CellUnderAttack cell, WarProcess war, boolean attacking) throws TownyException {
+    public static void registerAttack(final CellUnderAttack cell, WarProcess war, boolean attacking, CellAttackEvent cellAttackEvent) throws TownyException {
 
         CellUnderAttack attackCell = ATTACK_HASH_MAP.get(cell);
         String playerName = cell.getNameOfFlagOwner();
@@ -299,6 +300,9 @@ public class FlagWar extends JavaPlugin {
             else war.defendersActiveFlags++;
         } else {
             Player player = Bukkit.getPlayer(playerName);
+
+            cellAttackEvent.setCancelled(true);
+
             if (player == null) {
                 return;
             }
@@ -312,10 +316,7 @@ public class FlagWar extends JavaPlugin {
     }
 
     private static boolean checkPlayerActiveFlagLimit(WarProcess war, boolean attacking) throws TownyException {
-        if (war.getAllChunks().size()/15 >= (attacking ? war.attackersActiveFlags : war.defendersActiveFlags)) {
-            return false;
-        }
-        return true;
+        return ((war.getWarChunks().size() / 15 ) +1 ) > (attacking ? war.attackersActiveFlags : war.defendersActiveFlags);
     }
 
     private static void checkCellAlreadyRegistered(final CellUnderAttack attackCell) throws AlreadyRegisteredException {

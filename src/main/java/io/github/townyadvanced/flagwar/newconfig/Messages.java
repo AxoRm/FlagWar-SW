@@ -51,65 +51,71 @@ public class Messages extends AbstractConfig {
     @Path(path= "gui.dayGui.allowedDayLore")
     public static List<String> dayGuiAllowedDayLore = List.of("&aНажмите, чтобы выбрать", "&aдень начала войны!");
 
-    @Path(path = "war.")
+    @Path(path = "war.tooManyActiveFlags")
     public static String tooManyActiveFlags = "&cВы превысили лимит на одновременный захват чанков";
 
-    @Path(path = "war.")
+    @Path(path = "war.warStartedTitle")
     public static String warStartedTitle = "&cНачалась война";
 
-    @Path(path = "war.")
+    @Path(path = "war.warStartedSubTitleAttackers")
     public static String warStartedSubTitleAttackers = "Вы будете телепортированы на поле битвы";
 
-    @Path(path = "war.")
+    @Path(path = "war.warStartedSubTitleDefenders")
     public static String warStartedSubTitleDefenders = "Защитите свой город от противников";
 
-    @Path(path = "war.")
+    @Path(path = "war.respawnTitle")
     public static String respawnTitle = "Вы возродились!";
 
-    @Path(path = "war.")
+    @Path(path = "war.respawnSubTitle")
     public static String respawnSubTitle = "Используйте команду /returnwar, чтобы вернуться на поле боя";
 
-    @Path(path = "war.")
+    @Path(path = "war.reminderTitle")
     public static String reminderTitle = "Не забывайте!";
 
-    @Path(path = "war.")
+    @Path(path = "war.reminderSubTitle")
     public static String reminderSubTitle = "Вы можете вернуться на поле боя командой /returnwar";
 
-    @Path(path = "war.")
+    @Path(path = "war.autoTeleportMessage")
     public static String autoTeleportMessage = "Вы автоматически возвращены на поле боя!";
 
-    @Path(path = "war.")
+    @Path(path = "war.returnBattleTitle")
     public static String returnBattleTitle = "Телепортация";
 
-    @Path(path = "war.")
+    @Path(path = "war.returnBattleSubTitle")
     public static String returnBattleSubTitle = "Вы были возвращены на поле боя";
 
-    @Path(path = "war.")
+    @Path(path = "war.teleportBattleMessage")
     public static String teleportBattleMessage = "Вы были телепортированы на поле боя";
 
-    @Path(path = "war.")
+    @Path(path = "war.cauldronNotificationAttacker")
     public static String cauldronNotificationAttacker = "Вы успешно сделали котел на {0} чанков.";
 
-    @Path(path = "war.")
+    @Path(path = "war.cauldronNotificationDefender")
     public static String cauldronNotificationDefender = "Вы потеряли в котле {0} чанков.";
 
-    @Path(path = "war.")
+    @Path(path = "war.lostMessageDefender")
     public static String lostMessageDefender = "Вы проиграли и были автоматически перемещены в жители города {0}";
 
-    @Path(path = "war.")
+    @Path(path = "war.winMessageAttacker")
     public static String winMessageAttacker = "Вы выиграли в войне, жители вражеского города перешли в ваше владение! Также баланс города увеличился на {0}";
 
-    @Path(path = "war.")
+    @Path(path = "war.joinNotificationTitle")
     public static String joinNotificationTitle = "Внимание";
 
-    @Path(path = "war.")
+    @Path(path = "war.joinNotificationSubTitle")
     public static String joinNotificationSubTitle = "В вашем городе идет бой!";
 
-    @Path(path = "war.")
+    @Path(path = "war.occupiedHomeBlockMessage")
     public static String occupiedHomeBlockMessage = "Вы захватили главный чанк вражеского города";
 
-    @Path(path = "war.")
+    @Path(path = "war.leaveBattleMessage")
     public static String leaveBattleMessage = "Игрок {0} покинул битву!";
+
+    @Path(path = "war.winMessageDefender")
+    public static String winMessageDefender = "Вы успешно победили в войне с {0}";
+
+    @Path(path = "war.looseMessageAttacker")
+    public static String looseMessageAttacker = "Вы не смогли победить в войне с {0}";
 
     public Messages() {
         super(FlagWar.getFlagWar(), "messages.yml");

@@ -28,6 +28,7 @@ import com.palmergames.bukkit.towny.event.town.TownLeaveEvent;
 import com.palmergames.bukkit.towny.event.town.TownPreSetHomeBlockEvent;
 import com.palmergames.bukkit.towny.event.town.TownPreUnclaimCmdEvent;
 import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
+import com.palmergames.bukkit.towny.exceptions.TownyException;
 import com.palmergames.bukkit.towny.object.*;
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.FlagWarAPI;
@@ -91,7 +92,7 @@ public class FlagWarCustomListener implements Listener {
         }
 
         try {
-            FlagWar.registerAttack(cellAttackEvent.getData(), cellAttackEvent.getWar(), cellAttackEvent.isAttacking());
+            FlagWar.registerAttack(cellAttackEvent.getData(), cellAttackEvent.getWar(), cellAttackEvent.isAttacking(), cellAttackEvent);
         } catch (Exception e) {
             cellAttackEvent.setCancelled(true);
             cellAttackEvent.setReason(e.getMessage());
@@ -145,8 +146,11 @@ public class FlagWarCustomListener implements Listener {
                 return;
             }
 
-            var attackingTown = attackingResident.getTown();
-            var attackingNation = attackingTown.getNation();
+            Town attackingTown = attackingResident.getTown();
+            Nation attackingNation = null;
+            try {
+                attackingNation = attackingResident.getNation();
+            } catch (Exception e) {}
 
             var worldCoord = FlagWar.cellToWorldCoordinate(cell);
             updateTownyCache(cell);
@@ -193,6 +197,10 @@ public class FlagWarCustomListener implements Listener {
 
             // Event Message
             messageWon(cell, attackingResident, attackingNation);
+
+            if (cell.war.getAggressorTown() == attackingTown) {
+                cell.war.attackersActiveFlags --;
+            } else cell.war.defendersActiveFlags --;
 
             // Money Transfer message.
             if (TownyEconomyHandler.isActive() && amount != 0 && moneyTransferMessage != null) {
@@ -398,12 +406,12 @@ public class FlagWarCustomListener implements Listener {
         }
     }
 
-    private void attackerPayTownRebuild(final CellUnderAttack cell,
-                                        final Resident atkRes,
-                                        final Nation atkNat,
-                                        final Town defTown,
-                                        final double amount,
-                                        final String reason) {
+    private void attackerPayTownRebuild(CellUnderAttack cell,
+                                        Resident atkRes,
+                                        Nation atkNat,
+                                        Town defTown,
+                                        double amount,
+                                        String reason) {
             if (!atkRes.getAccount().payTo(amount, defTown, reason)) {
                 messageWon(cell, atkRes, atkNat);
             }
@@ -430,14 +438,13 @@ public class FlagWarCustomListener implements Listener {
         }
     }
 
-    private void messageWon(final CellUnderAttack cell, final Resident atkRes, final Nation atkNat) {
+    private void messageWon(CellUnderAttack cell, Resident atkRes, Nation atkNat) {
         String resName = atkRes.getFormattedName();
-        String natName = atkNat.getFormattedName();
         String msg;
-        if (atkNat.hasTag()) {
-            msg = Translate.fromPrefixed("broadcast.area.won", resName, atkNat.getTag(), cell.getCellString());
+        if (atkNat == null || atkNat.hasTag()) {
+            msg = Translate.fromPrefixed("broadcast.area.won", resName, atkNat == null ? "" : atkNat.getTag(), cell.getCellString());
         } else {
-            msg = Translate.fromPrefixed("broadcast.area.won", resName, natName, cell.getCellString());
+            msg = Translate.fromPrefixed("broadcast.area.won", resName, atkNat.getFormattedName(), cell.getCellString());
         }
         TownyMessaging.sendGlobalMessage(msg);
     }
