@@ -140,6 +140,10 @@ public class WarProcess implements Listener {
         startTime = war.warTime;
         this.aggressors = new ArrayList<>(aggressorTown.getResidents());
         this.defenders = new ArrayList<>(defenderTown.getResidents());
+
+        aggressorTown.addEnemy(defenderTown);
+        defenderTown.addEnemy(aggressorTown);
+
         this.participants = new ArrayList<>();
         this.participants.addAll(aggressors);
         this.participants.addAll(defenders);
@@ -553,6 +557,9 @@ public class WarProcess implements Listener {
         defenderTown.setDebtBalance(0d);
         defenderTown.removeNation();
         defenderTown.setRuined(true);
+
+        aggressorTown.removeEnemy(defenderTown);
+
         for (Resident resident : defenders) {
             if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName()))));
         }
