@@ -120,6 +120,10 @@ public class FlagWarCustomListener implements Listener {
         updateTownyCache(cell);
         towny.getServer().broadcastMessage(broadcast);
 
+        if (cell.war.getAggressorTown() == new WorldCoord(cell.getWorldName(), cell.getX(), cell.getZ()).getTownOrNull()) {
+            cell.war.attackersActiveFlags --;
+        } else cell.war.defendersActiveFlags --;
+
         calculateDefenderReward(player, cell);
     }
 

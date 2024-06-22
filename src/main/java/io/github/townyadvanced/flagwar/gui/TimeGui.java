@@ -64,14 +64,14 @@ public class TimeGui implements Listener {
             ItemStack head = SkullCreator.itemFromBase64("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWQ0NTJiZmNkYzNlYTE0ZjllNjEyYjFjOTZhYmVmOTdjMTBlOTZjNzExNmVhMmE0YjFhNWRmOGQ0YWExNzJmOSJ9fX0=");
             ItemMeta meta = head.getItemMeta();
             assert meta != null;
-            meta.displayName(Messaging.formatForComponent("&f" + dateString));
+            meta.displayName(Messaging.formatForComponent("&f" + dateString, false));
             ZonedDateTime date = today.plusDays(i - 1).withHour(19).withMinute(0).withSecond(0).withNano(0);
             long millisUntilDate = date.toInstant().toEpochMilli() - today.toInstant().toEpochMilli();
             long hoursUntilDate = millisUntilDate / (1000 * 60 * 60);
             List<String> lore = Arrays.asList("12", "13");
             meta.lore(Messaging.formatForList(Messages.dayGuiDisallowedDayLore));
             if (hoursUntilDate >= 36) {
-                meta.displayName(Messaging.formatForComponent("&e" + dateString));
+                meta.displayName(Messaging.formatForComponent("&e" + dateString, false));
                 meta.lore(Messaging.formatForList(Messages.dayGuiAllowedDayLore));
                 slots.add(i);
             }
