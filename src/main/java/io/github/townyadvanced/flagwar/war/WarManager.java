@@ -99,6 +99,18 @@ public class WarManager {
         }
         return null;
     }
+
+    public PreWarProcess getPreWar(Town town) {
+        for (Map.Entry<NewWar, PreWarProcess> entry : map.entrySet()) {
+            Town attacker = entry.getKey().getAttacker();
+            Town defender = entry.getKey().getVictim();
+            if (!(attacker.equals(town) || defender.equals(town))) continue;
+            return entry.getValue();
+        }
+        return null;
+    }
+
+
     public void FinishWar(NewWar war) {
         wars.remove(war);
     }

@@ -14,6 +14,8 @@ import io.github.townyadvanced.flagwar.util.Messaging;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,9 +48,37 @@ public class WarCommand extends AbstractCommand {
                 sender.sendMessage(Messaging.formatForComponent(Messages.notMayor));
                 return;
             }
+
+            if (process(sender, town, "&cВаш город существует менее 3-х дней. Вы не можете объявить войну"))
+                return;
+            if (process(sender, townEnemy, "&cДанный город существует менее 3-х дней. Вы не можете объявить ему войну"))
+                return;
+
+            if (townEnemy.getLevelNumber() < town.getLevelNumber()-1) {
+                sender.sendMessage(Messaging.formatForComponent("&cУровень вашего города выше уровня противника на " + String.valueOf(town.getLevelNumber() - townEnemy.getLevelNumber()) + ". Вы не можете объявить ему войну"));
+                return;
+            }
+            if (FlagWar.warManager.getWar(town) != null || FlagWar.warManager.getPreWar(town) != null) {
+                sender.sendMessage("&cВы не можете объявить войну, когда у вас уже есть текущая/запланированная война");
+                return;
+            }
             Gui gui = new Gui((Player) sender, townEnemy, town);
             gui.displayInventory((Player) sender);
         }
+    }
+
+    public boolean process(CommandSender sender, Town town, String message) {
+        long townCreationTimeMillis = town.getRegistered();
+        Instant townCreationInstant = Instant.ofEpochMilli(townCreationTimeMillis);
+        Instant currentTime = Instant.now();
+
+        Duration timeSinceCreation = Duration.between(townCreationInstant, currentTime);
+        Duration threeDays = Duration.ofDays(3);
+        if (timeSinceCreation.compareTo(threeDays) < 0) {
+            sender.sendMessage(Messaging.formatForComponent(message));
+            return true;
+        }
+        return false;
     }
 
     @Override
