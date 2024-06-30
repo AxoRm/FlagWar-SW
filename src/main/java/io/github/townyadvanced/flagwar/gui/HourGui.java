@@ -58,14 +58,14 @@ public class HourGui implements Listener {
             ItemMeta meta = hourHead.getItemMeta();
             assert meta != null;
             String hourString = i + ":00";
-            meta.displayName(Messaging.formatForComponent("&f" + hourString));
+            meta.displayName(Messaging.formatForComponent("&f" + hourString, false));
 
             ZonedDateTime selectedHour = selectedDay.withHour(i).withMinute(0).withSecond(0).withNano(0);
 
             long millisUntilSelectedHour = selectedHour.toInstant().toEpochMilli() - today.toInstant().toEpochMilli();
             long hoursUntilSelectedHour = millisUntilSelectedHour / (1000 * 60 * 60);
             if (hoursUntilSelectedHour >= 36) {
-                meta.displayName(Messaging.formatForComponent("&e" + hourString));
+                meta.displayName(Messaging.formatForComponent("&e" + hourString, false));
                 meta.lore(Messaging.formatForList(Messages.hourGuiAllowedHourLore));
                 slots.add(i-12);
             } else {

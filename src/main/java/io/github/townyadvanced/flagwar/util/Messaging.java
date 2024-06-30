@@ -18,6 +18,7 @@ package io.github.townyadvanced.flagwar.util;
 
 import io.github.townyadvanced.flagwar.FlagWar;
 import io.github.townyadvanced.flagwar.config.FlagWarConfig;
+import io.github.townyadvanced.flagwar.newconfig.Messages;
 import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -77,19 +78,23 @@ public final class Messaging {
     }
 
     public static List<Component> formatForList(List<String> s) {
-        return s.stream().map(Messaging::formatForComponent).toList();
+        return s.stream().map(str -> formatForComponent(str, false)).toList();
     }
 
     public static String formatForString(String s) {
         return ChatColor.translateAlternateColorCodes('&', s);
     }
 
-    public static com.palmergames.adventure.text.Component formatForComponentAdventure(String s) {
+    public static com.palmergames.adventure.text.Component formatForComponentPalmergames(String s) {
         return com.palmergames.adventure.text.Component.text(formatForString(s));
     }
 
     public static Component formatForComponent(String s) {
-        return Component.text(ChatColor.translateAlternateColorCodes('&', s));
+        return formatForComponent(s, true);
+    }
+
+    public static Component formatForComponent(String s, boolean prefix) {
+        return Component.text(ChatColor.translateAlternateColorCodes('&', (prefix ? Messages.prefix : "") +  s));
     }
 
     public static String parsePlaceholders(String str, String ...strings) {

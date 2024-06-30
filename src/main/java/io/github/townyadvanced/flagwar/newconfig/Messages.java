@@ -120,6 +120,15 @@ public class Messages extends AbstractConfig {
     @Path(path = "war.looseMessageAttacker")
     public static String looseMessageAttacker = "Вы не смогли победить в войне с {0}";
 
+    @Path(path = "war.townRestrictedLeave")
+    public static String townRestrictedLeave = "&cВы не можете покинуть город во время войны!";
+
+    @Path(path = "war.getTownRestrictedJoin")
+    public static String getTownRestrictedJoin = "&cВы не можете вступить в город во время войны!";
+
+    @Path(path = "prefix")
+    public static String prefix = "&7[&fTownyWar&7] ";
+
     public Messages() {
         super(FlagWar.getFlagWar(), "messages.yml");
     }

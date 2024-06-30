@@ -314,13 +314,13 @@ public class WarProcess implements Listener {
         for (Player player : playerAggressors) {
             if (player == null || !player.isOnline()) continue;
             player.teleport(spawnLocation);
-            player.sendMessage("Вы телепортированы на поле боя!");
+            player.sendMessage(Messages.teleportBattleMessage);
 
-            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleAttackers), 10, 80, 20);
+            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleAttackers), 10, 180, 20);
         }
         for (Player player: playerDefenders) {
             if (player == null || !player.isOnline()) continue;
-            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleDefenders),  10, 80, 20);
+            player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleDefenders),  10, 180, 20);
         }
     }
 
@@ -388,14 +388,14 @@ public class WarProcess implements Listener {
 
     public void startScheduledMessage(Player player) {
         // Send message immediately
-        player.sendTitle(Messaging.formatForString(Messaging.formatForString(Messages.respawnTitle)), Messaging.formatForString(Messages.respawnSubTitle), 10, 70, 20);
+        player.sendTitle(Messaging.formatForString(Messaging.formatForString(Messages.respawnTitle)), Messaging.formatForString(Messages.respawnSubTitle), 10, 140, 20);
 
         // Schedule message every 5 minutes
         BukkitRunnable notificationTask = new BukkitRunnable() {
             @Override
             public void run() {
                 if (player.isOnline()) {
-                    player.sendTitle(Messaging.formatForString(Messages.reminderTitle), Messaging.formatForString(Messages.reminderSubTitle), 10, 70, 20);
+                    player.sendTitle(Messaging.formatForString(Messages.reminderTitle), Messaging.formatForString(Messages.reminderSubTitle), 10, 140, 20);
                 }
             }
         };
@@ -406,7 +406,7 @@ public class WarProcess implements Listener {
             @Override
             public void run() {
                 teleportToWarSpawn(player);
-                player.sendMessage(Messaging.formatForString(Messages.autoTeleportMessage));
+                player.sendMessage(Messaging.formatForComponent(Messages.autoTeleportMessage));
             }
         }.runTaskLater(FlagWar.getInstance(), 20 * 60 * 10); // 10 minutes in ticks
         notificationTasks.put(player, notificationTask);
@@ -416,7 +416,7 @@ public class WarProcess implements Listener {
     public void teleportToWarSpawn(Player player) {
         if (player.isOnline()) {
             player.teleport(spawnLocation);
-            player.sendTitle(Messaging.formatForString(Messages.returnBattleTitle), Messaging.formatForString(Messages.returnBattleSubTitle), 10, 40, 20);
+            player.sendTitle(Messaging.formatForString(Messages.returnBattleTitle), Messaging.formatForString(Messages.returnBattleSubTitle), 10, 140, 20);
             if (notificationTasks.containsKey(player))
                 notificationTasks.get(player).cancel();
             notificationTasks.remove(player);
@@ -683,14 +683,14 @@ public class WarProcess implements Listener {
                 public void run() {
                     if (joinEvent.getPlayer().isOnline()) {
                         joinEvent.getPlayer().teleport(spawnLocation);
-                        joinEvent.getPlayer().sendTitle(Messaging.formatForString(Messages.returnBattleTitle), message, 10, 70, 20);
+                        joinEvent.getPlayer().sendTitle(Messaging.formatForString(Messages.returnBattleTitle), message, 10, 140, 20);
                     }
                 }
             }.runTaskLater(FlagWar.getInstance(), 20 * 60 * 5); // 5 minutes in ticks
 
             teleportTasks.put(joinEvent.getPlayer(), task);
         } else if (defenders.contains(resident)) {
-            joinEvent.getPlayer().sendTitle(Messaging.formatForString(Messages.joinNotificationTitle), Messaging.formatForString(Messages.joinNotificationSubTitle), 10,70,20);
+            joinEvent.getPlayer().sendTitle(Messaging.formatForString(Messages.joinNotificationTitle), Messaging.formatForString(Messages.joinNotificationSubTitle), 10, 140, 20);
         }
     }
 
@@ -709,7 +709,7 @@ public class WarProcess implements Listener {
         if (town.equals(aggressorTown)) {
             if (chunk.equals(spawnChunk)) {
                 isSpawnCaptured = true;
-                player.sendMessage(TextComponent.fromLegacyText(Messaging.formatForString(Messages.occupiedHomeBlockMessage)));
+                player.sendMessage(Messaging.formatForComponent(Messaging.formatForString(Messages.occupiedHomeBlockMessage)));
             }
             if (chunk.equals(newSpawnChunk))
                 updateSpawnChunk();
@@ -732,7 +732,7 @@ public class WarProcess implements Listener {
         Player player = quitEvent.getPlayer();
         if (online.contains(player)) {
             online.remove(player);
-            Objects.requireNonNull(towny.getTown(player)).getMayor().getPlayer().sendMessage(Messaging.formatForString(Messaging.parsePlaceholders(Messages.leaveBattleMessage, player.getName())));
+            Objects.requireNonNull(towny.getTown(player)).getMayor().getPlayer().sendMessage(Messaging.formatForComponent(Messaging.parsePlaceholders(Messages.leaveBattleMessage, player.getName())));
         }
     }
 
@@ -767,7 +767,7 @@ public class WarProcess implements Listener {
     @EventHandler
     public void onTownLeaveEvent(TownLeaveEvent event) {
         if (participants.contains(event.getResident())) {
-            event.getResident().sendMessage(Messaging.formatForComponentAdventure("&cВы не можете покинуть город во время войны!"));
+            event.getResident().getPlayer().sendMessage(Messaging.formatForComponent(Messages.townRestrictedLeave));
             event.setCancelled(true);
         }
     }
@@ -780,7 +780,7 @@ public class WarProcess implements Listener {
         Bukkit.getScheduler().runTask(FlagWar.getInstance(), () -> {
             try {
                 event.getTown().removeResident(event.getResident());
-                event.getResident().getPlayer().sendMessage(TextComponent.fromLegacyText("Вы не можете вступить в город во время войны!"));
+                event.getResident().getPlayer().sendMessage(Messaging.formatForComponent(Messages.getTownRestrictedJoin));
             } catch (EmptyTownException e) {
                 throw new RuntimeException(e);
             } catch (NotRegisteredException e) {
