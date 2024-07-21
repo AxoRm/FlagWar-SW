@@ -24,6 +24,7 @@ public class WarManager {
     }
     public void startPreWarProcess(NewWar war) {
         map.put(war, new PreWarProcess(war));
+        SQLiteStorage.saveNewWar(war);
     }
 
     public HashMap<NewWar, WarProcess> getWars() {
@@ -32,6 +33,7 @@ public class WarManager {
 
     public void startWar(NewWar war) {
         map.remove(war);
+        SQLiteStorage.deleteNewWar(war);
         wars.put(war, new WarProcess(war));
     }
 

@@ -783,8 +783,6 @@ public class WarProcess implements Listener {
                 event.getResident().getPlayer().sendMessage(Messaging.formatForComponent(Messages.getTownRestrictedJoin));
             } catch (EmptyTownException e) {
                 throw new RuntimeException(e);
-            } catch (NotRegisteredException e) {
-                throw new RuntimeException(e);
             }
         });
     }
