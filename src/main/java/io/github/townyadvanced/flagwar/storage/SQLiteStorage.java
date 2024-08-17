@@ -57,22 +57,21 @@ public class SQLiteStorage {
                     Bukkit.getPluginManager().disablePlugin(plugin);
                 }
 
-                if (connection != null) onSQLLoad.runTaskAsynchronously(plugin);
+                if (connection != null) onSQLLoad.runTask(plugin);
             }
-        }.runTaskAsynchronously(plugin);
+        }.runTask(plugin);
     }
 
     public void initDatabase() {
         try {
             System.out.println("here");
-            PreparedStatement createNewWarsTableStatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `newWars` (`attacker` TEXT NOT NULL, `victim` TEXT NOT NULL, `day` int NOT NULL, `month` int NOT NULL, `hour` int NOT NULL, `year` int NOT NULL);");
+            PreparedStatement createNewWarsTableStatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `newWars` (`attacker` TEXT NOT NULL, `victim` TEXT NOT NULL, `year` int NOT NULL, `month` int NOT NULL, `day` int NOT NULL, `hour` int NOT NULL);");
             createNewWarsTableStatement.execute();
 
-            PreparedStatement queryWarsStatement = connection.prepareStatement("SELECT * FROM `newWars`");
-            ResultSet resultSet = queryWarsStatement.executeQuery();
+            ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM `newWars`");
             Map<String, String> toDelete = new HashMap<>();
             while (resultSet.next()) {
-                System.out.println(resultSet);
+                System.out.println("Смартфон vivo");
                 Town attacker = TownyAPI.getInstance().getTown(resultSet.getString("attacker"));
                 Town victim = TownyAPI.getInstance().getTown(resultSet.getString("victim"));
                 int year = resultSet.getInt("year");
@@ -113,10 +112,10 @@ public class SQLiteStorage {
                     PreparedStatement saveStatement = FlagWar.storage.connection.prepareStatement("INSERT INTO `newWars` VALUES (?, ?, ?, ?, ?, ?);");
                     saveStatement.setString(1, newWar.attacker.getName());
                     saveStatement.setString(2, newWar.victim.getName());
-                    saveStatement.setInt(3, newWar.month);
-                    saveStatement.setInt(4, newWar.day);
-                    saveStatement.setInt(5, newWar.hour);
-                    saveStatement.setInt(6, newWar.year);
+                    saveStatement.setInt(3, newWar.year);
+                    saveStatement.setInt(4, newWar.month);
+                    saveStatement.setInt(5, newWar.day);
+                    saveStatement.setInt(6, newWar.hour);
                     saveStatement.execute();
                 } catch (SQLException ignored) {
                 }

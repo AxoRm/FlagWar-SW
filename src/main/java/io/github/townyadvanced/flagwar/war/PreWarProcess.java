@@ -26,6 +26,7 @@ public class PreWarProcess implements Listener {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public PreWarProcess(NewWar war) {
+        System.out.println("here 3 " + war);
         this.war = war;
         Bukkit.getPluginManager().registerEvents(this, FlagWar.getFlagWar());
         planNotifications();
