@@ -24,10 +24,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class SQLiteStorage {
     public static Set<NewWar> newWars = new HashSet<>();
@@ -67,15 +64,15 @@ public class SQLiteStorage {
 
     public void initDatabase() {
         try {
+            System.out.println("here");
             PreparedStatement createNewWarsTableStatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `newWars` (`attacker` TEXT NOT NULL, `victim` TEXT NOT NULL, `day` int NOT NULL, `month` int NOT NULL, `hour` int NOT NULL, `year` int NOT NULL);");
             createNewWarsTableStatement.execute();
 
             PreparedStatement queryWarsStatement = connection.prepareStatement("SELECT * FROM `newWars`");
             ResultSet resultSet = queryWarsStatement.executeQuery();
-
             Map<String, String> toDelete = new HashMap<>();
-
             while (resultSet.next()) {
+                System.out.println(resultSet);
                 Town attacker = TownyAPI.getInstance().getTown(resultSet.getString("attacker"));
                 Town victim = TownyAPI.getInstance().getTown(resultSet.getString("victim"));
                 int year = resultSet.getInt("year");
@@ -85,11 +82,12 @@ public class SQLiteStorage {
 
                 if (attacker == null || victim == null || attacker.isRuined() || victim.isRuined()) {
                     toDelete.put(resultSet.getString("attacker"), resultSet.getString("victim"));
+                    continue;
                 };
 
                 newWars.add(new NewWar(attacker, victim, year, month, day, hour));
             }
-
+            System.out.println("here");
             for (Map.Entry<String, String> warEntry : toDelete.entrySet()) {
 
                 String attacker = warEntry.getKey();
@@ -101,6 +99,7 @@ public class SQLiteStorage {
 
                 deleteUnresolvedStatement.execute();
             }
+            System.out.println("here");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -118,7 +117,9 @@ public class SQLiteStorage {
                     saveStatement.setInt(4, newWar.day);
                     saveStatement.setInt(5, newWar.hour);
                     saveStatement.setInt(6, newWar.year);
-                } catch (SQLException ignored) {}
+                    saveStatement.execute();
+                } catch (SQLException ignored) {
+                }
             }
         }.runTaskAsynchronously(FlagWar.getFlagWar());
     }
@@ -131,6 +132,7 @@ public class SQLiteStorage {
                     PreparedStatement deleteStatement = FlagWar.storage.connection.prepareStatement("DELETE FROM `newWars` WHERE `attacker` = ? AND `victim` = ?;");
                     deleteStatement.setString(1, newWar.attacker.getName());
                     deleteStatement.setString(2, newWar.victim.getName());
+                    deleteStatement.execute();
                 } catch (SQLException ignored) {}
             }
         }.runTaskAsynchronously(FlagWar.getFlagWar());

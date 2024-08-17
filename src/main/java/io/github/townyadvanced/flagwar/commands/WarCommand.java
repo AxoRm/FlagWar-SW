@@ -49,10 +49,10 @@ public class WarCommand extends AbstractCommand {
                 return;
             }
 
-            if (process(sender, town, "&cВаш город существует менее 3-х дней. Вы не можете объявить войну"))
-                return;
-            if (process(sender, townEnemy, "&cДанный город существует менее 3-х дней. Вы не можете объявить ему войну"))
-                return;
+//            if (process(sender, town, "&cВаш город существует менее 3-х дней. Вы не можете объявить войну"))
+//                return;
+//            if (process(sender, townEnemy, "&cДанный город существует менее 3-х дней. Вы не можете объявить ему войну"))
+//                return;
 
             if (townEnemy.getLevelNumber() < town.getLevelNumber()-1) {
                 sender.sendMessage(Messaging.formatForComponent("&cУровень вашего города выше уровня противника на " + String.valueOf(town.getLevelNumber() - townEnemy.getLevelNumber()) + ". Вы не можете объявить ему войну"));
