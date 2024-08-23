@@ -32,34 +32,28 @@ public class SQLiteStorage {
     File file;
     public Connection connection;
     FlagWar plugin;
-    public SQLiteStorage (String filePath, BukkitRunnable onSQLLoad, FlagWar plugin) {
+    public SQLiteStorage (String filePath, FlagWar plugin) {
         this.plugin = plugin;
         this.file = new File(plugin.getDataFolder(), filePath);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                try {
-                    if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdir();
-                    if (!file.exists()) file.createNewFile();
-                } catch (IOException e) {
-                    plugin.getLogger().severe("Cannot create database file " + file.getPath() + " Stack:");
-                    for (StackTraceElement stackTraceElement : e.getStackTrace()) {
-                        plugin.getLogger().severe(stackTraceElement.toString());
-                    }
-                    Bukkit.getPluginManager().disablePlugin(plugin);
-                }
-
-                try {
-                    connection = DriverManager.getConnection("jdbc:sqlite:"+file.getAbsolutePath());
-                } catch (SQLException e) {
-                    plugin.getLogger().severe("Cannot create SQL connection. Stack:");
-                    e.printStackTrace();
-                    Bukkit.getPluginManager().disablePlugin(plugin);
-                }
-
-                if (connection != null) onSQLLoad.runTask(plugin);
+        try {
+            if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdir();
+            if (!file.exists()) file.createNewFile();
+        } catch (IOException e) {
+            plugin.getLogger().severe("Cannot create database file " + file.getPath() + " Stack:");
+            for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                plugin.getLogger().severe(stackTraceElement.toString());
             }
-        }.runTask(plugin);
+            Bukkit.getPluginManager().disablePlugin(plugin);
+        }
+
+        try {
+            connection = DriverManager.getConnection("jdbc:sqlite:"+file.getAbsolutePath());
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Cannot create SQL connection. Stack:");
+            e.printStackTrace();
+            Bukkit.getPluginManager().disablePlugin(plugin);
+        }
+        if (connection != null) initDatabase();
     }
 
     public void initDatabase() {

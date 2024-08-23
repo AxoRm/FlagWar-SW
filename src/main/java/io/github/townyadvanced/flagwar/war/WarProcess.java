@@ -25,11 +25,7 @@ import io.github.townyadvanced.flagwar.newconfig.Messages;
 import io.github.townyadvanced.flagwar.objects.Cell;
 import io.github.townyadvanced.flagwar.storage.NewWar;
 import io.github.townyadvanced.flagwar.util.Messaging;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -43,7 +39,10 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.time.Duration;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.TemporalField;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -54,8 +53,15 @@ public class WarProcess implements Listener {
     TownyAPI towny = TownyAPI.getInstance();
     ZonedDateTime startTime;
     int respawns = 0;
+
+    public int currentHour = 0;
+
     public int attackersActiveFlags = 0;
     public int defendersActiveFlags = 0;
+    private int rotationIndex = 0;
+    private BossBarManager bossBarManager;
+    private List<Long> nextCheckTimes;
+    ZonedDateTime nextCheckTime;
     Town aggressorTown;
 
     public Location getSpawnLocation() {
@@ -90,11 +96,14 @@ public class WarProcess implements Listener {
     List<Resident> aggressors;
     List<Resident> defenders;
     List<Resident> participants;
-    List<Player> playerAggressors;
-    List<Player> playerDefenders;
+    List<String> playerAggressors;
+    List<String> playerDefenders;
     List<Resident> mayorsAgg = new ArrayList<>();
     List<Resident> mayorsDef = new ArrayList<>();
-    List<Player> playerParticipants;
+    List<String> playerParticipants;
+
+    private int attackerMessageIndex = 0;
+    private int defenderMessageIndex = 0;
 
     public Set<Chunk> getAllChunks() {
         return allChunks;
@@ -120,14 +129,14 @@ public class WarProcess implements Listener {
     TownBlock spawn;
     Chunk spawnChunk;
     Chunk newSpawnChunk;
-    List<Player> online;
-    List<Player> wasOnline;
+    ArrayList<String> online;
+    List<String> wasOnline;
     String warAggressorPrefix = "&c◆";
     String warAggressorPostfix = "&c◆";
     String warDefenderPrefix = "&9■";
     String warDefenderPostfix = "&9■";
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private final Map<Player, BukkitTask> teleportTasks = new HashMap<>();
+    private final Map<Player, BukkitRunnable> teleportTasks = new HashMap<>();
     private final Map<Player, BukkitRunnable> notificationTasks = new HashMap<>();
     Location spawnLocation;
     boolean isSpawnCaptured = false;
@@ -149,14 +158,14 @@ public class WarProcess implements Listener {
         this.participants.addAll(aggressors);
         this.participants.addAll(defenders);
         this.kickResidents = new HashSet<>();
-        this.playerAggressors = aggressors.stream().map(Resident::getPlayer).toList();
-        this.playerDefenders = defenders.stream().map(Resident::getPlayer).toList();
+        this.playerAggressors = aggressors.stream().map(Resident::getName).toList();
+        this.playerDefenders = defenders.stream().map(Resident::getName).toList();
         this.playerParticipants = new ArrayList<>();
         this.playerParticipants.addAll(playerAggressors);
         this.playerParticipants.addAll(playerDefenders);
 
-        online = participants.stream().filter(Resident::isOnline).map(Resident::getPlayer).toList();
-        wasOnline = participants.stream().filter(Resident::isOnline).map(Resident::getPlayer).toList();
+        online = new ArrayList<>(participants.stream().filter(Resident::isOnline).map(Resident::getName).toList());
+        wasOnline = new ArrayList<>(participants.stream().filter(Resident::isOnline).map(Resident::getName).toList());
         Bukkit.getPluginManager().registerEvents(this, FlagWar.getInstance());
         //Bukkit.getLogger().info("Here");
         this.warChunks = new HashSet<>();
@@ -184,15 +193,22 @@ public class WarProcess implements Listener {
             Bukkit.getLogger().severe("Failed to initialize war chunks or calculate start location: " + ex.getMessage());
             return null;
         });
+        nextCheckTime = startTime.plus(Duration.ofHours(1));
         for (int hour = 1; hour <= 5; hour ++) {
             int finalHour = hour;
-            scheduler.schedule(() -> checkWarFinish(finalHour), hour, TimeUnit.HOURS);
+            scheduler.schedule(() -> handleWarFinish(finalHour), hour, TimeUnit.HOURS);
+        }
+        BossBarManager bossBar = new BossBarManager(this);
+    }
+
+    private void handleWarFinish(int x) {
+        currentHour = x;
+        if ((double) aggressorWonChunks.size() / warChunks.size() < (double) 15*x/100) {
+            looseProcess();
+            bossBarManager.clearBossBars();
         }
     }
 
-    private void checkWarFinish(int x) {
-        if ((double) aggressorWonChunks.size() / warChunks.size() < (double) 15*x/100) looseProcess();
-    }
     private CompletableFuture<Void> findWarChunksAsync() {
         return CompletableFuture.runAsync(() -> {
             Queue<Chunk> queue = new LinkedList<>();
@@ -311,14 +327,16 @@ public class WarProcess implements Listener {
     }
 
     private void startWar() {
-        for (Player player : playerAggressors) {
+        for (String playerName : playerAggressors) {
+            Player player = Bukkit.getPlayer(playerName);
             if (player == null || !player.isOnline()) continue;
             player.teleport(spawnLocation);
             player.sendMessage(Messages.teleportBattleMessage);
 
             player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleAttackers), 10, 180, 20);
         }
-        for (Player player: playerDefenders) {
+        for (String playerName: playerDefenders) {
+            Player player = Bukkit.getPlayer(playerName);
             if (player == null || !player.isOnline()) continue;
             player.sendTitle(Messaging.formatForString(Messages.warStartedTitle), Messaging.formatForString(Messages.warStartedSubTitleDefenders),  10, 180, 20);
         }
@@ -346,6 +364,73 @@ public class WarProcess implements Listener {
         });
     }
 
+    public String getPrefix(Town town) {
+        if (town.equals(this.aggressorTown)) {
+            return "&c◆";
+        }
+        if (town.equals(this.defenderTown)) {
+            return "&9■";
+        }
+        return "";
+    }
+
+    public String getStatus(Town town) {
+        boolean isAggressor = town.equals(aggressorTown);
+        int totalChunks = warChunks.size();
+        int capturedChunks = aggressorWonChunks.size();
+        double capitulationThreshold = isSpawnCaptured ? 0.5 : 0.75;
+        double currentProgress = (double) capturedChunks / totalChunks;
+        int chunksNeededForVictory = (int) Math.ceil(totalChunks * capitulationThreshold);
+        ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("GMT+3"));
+
+        // Calculate war duration and time until next check
+        long warDurationInSeconds = Duration.between(startTime, currentTime).getSeconds();
+
+        if (currentTime.isAfter(nextCheckTime)) {
+            nextCheckTime = nextCheckTime.plus(Duration.ofHours(1));
+        }
+
+        long timeUntilNextCheckInSeconds = Duration.between(currentTime, nextCheckTime).getSeconds();
+
+        // Rotate through different messages
+        rotationIndex = (rotationIndex + 1) % 4;
+        return switch (rotationIndex) {
+            case 0 -> "War Duration: " + formatTime(warDurationInSeconds);
+            case 1 ->
+                    "Captured Chunks: " + capturedChunks + "/" + totalChunks + " (" + String.format("%.2f%%", currentProgress * 100) + ")";
+            case 2 -> "Chunks Needed for Victory: " + chunksNeededForVictory;
+            case 3 -> "Time Until Next Check: " + formatTime(timeUntilNextCheckInSeconds);
+            default -> "War Status";
+        };
+    }
+
+    String formatTime(long seconds) {
+        long mins = seconds / 60;
+        long secs = seconds % 60;
+        long hours = mins / 60;
+        mins = mins % 60;
+        long days = hours / 24;
+        hours = hours % 24;
+
+        StringBuilder time = new StringBuilder();
+        if (days > 0) time.append(days).append("d ");
+        if (hours > 0 || days > 0) time.append(hours).append("h ");
+        if (mins > 0 || hours > 0 || days > 0) time.append(mins).append("m ");
+        time.append(secs).append("s");
+
+        return time.toString();
+    }
+
+    public String getSuffix(Town town) {
+        if (town.equals(this.aggressorTown)) {
+            return "&c◆";
+        }
+        if (town.equals(this.defenderTown)) {
+            return "&9■";
+        }
+        return "";
+    }
+
     private boolean isOnBorder(Chunk chunk) {
         int chunkX = chunk.getX();
         int chunkZ = chunk.getZ();
@@ -371,7 +456,7 @@ public class WarProcess implements Listener {
             if (isEnemyPlayer(player)) {
                 Location playerLocation = player.getLocation();
                 int distance = Math.max(Math.abs(centerX - playerLocation.getBlockX()), Math.abs(centerZ - playerLocation.getBlockZ()));
-                if (distance <= 40) { // 5 chunks distance
+                if (distance <= 40) { // 2.5 chunk distance
                     return false; // Found an enemy player nearby
                 }
             }
@@ -402,29 +487,53 @@ public class WarProcess implements Listener {
         notificationTask.runTaskTimer(FlagWar.getInstance(), 5 * 60 * 20, 5 * 60 * 20); // Every 5 minutes in ticks
 
         // Schedule teleport after 10 minutes if not returned
-        BukkitTask task = new BukkitRunnable() {
+        BukkitRunnable task = new BukkitRunnable() {
             @Override
             public void run() {
                 teleportToWarSpawn(player);
                 player.sendMessage(Messaging.formatForComponent(Messages.autoTeleportMessage));
             }
-        }.runTaskLater(FlagWar.getInstance(), 20 * 60 * 10); // 10 minutes in ticks
+        };
+        task.runTaskLater(FlagWar.getInstance(), 20 * 60 * 10); // 10 minutes in ticks
+
         notificationTasks.put(player, notificationTask);
         teleportTasks.put(player, task);
     }
 
     public void teleportToWarSpawn(Player player) {
-        if (player.isOnline()) {
+        if (!player.isOnline()) {
+            return;
+        }
+
+        Runnable teleportAndNotify = () -> {
             player.teleport(spawnLocation);
-            player.sendTitle(Messaging.formatForString(Messages.returnBattleTitle), Messaging.formatForString(Messages.returnBattleSubTitle), 10, 140, 20);
-            if (notificationTasks.containsKey(player))
-                notificationTasks.get(player).cancel();
-            notificationTasks.remove(player);
-            if (teleportTasks.containsKey(player))
-                teleportTasks.get(player).cancel();
-            teleportTasks.remove(player);
+            player.sendTitle(Messaging.formatForString(Messages.returnBattleTitle),
+                    Messaging.formatForString(Messages.returnBattleSubTitle),
+                    10, 140, 20);
+            cancelAndRemoveTask(notificationTasks, player);
+            cancelAndRemoveTask(teleportTasks, player);
+        };
+
+        if (hasNoEnemyPlayersNearby(getSpawnLocation().getChunk())) {
+            teleportAndNotify.run();
+        } else {
+            calculateWarStartLocationAsync().thenAccept(location -> {
+                this.spawnLocation = location;
+                teleportAndNotify.run();
+            }).exceptionally(ex -> {
+                Bukkit.getLogger().severe("Failed to initialize war chunks or calculate start location: " + ex.getMessage());
+                return null;
+            });
         }
     }
+
+    private void cancelAndRemoveTask(Map<Player, ? extends BukkitRunnable> taskMap, Player player) {
+        if (taskMap.containsKey(player)) {
+            taskMap.get(player).cancel();
+        }
+        taskMap.remove(player);
+    }
+
 
     public void scanSurround(Chunk chunk) {
         if (aggressorWonChunks.size() < 18) return;
@@ -552,20 +661,19 @@ public class WarProcess implements Listener {
                 if (!defenderTown.getHomeBlock().equals(block)) {
                     transferOwnership(aggressorTown, block);
                 }
-            } catch (TownyException e) {
-                continue;
+            } catch (TownyException ignored) {
             }
         }
         for (Resident resident : defenders) {
             if (resident.isMayor()) continue;
             try {
                 resident.setTown(aggressorTown);
-            } catch (Exception e) {
-                continue;
+            } catch (Exception ignored) {
             }
         }
-        aggressorTown.setDebtBalance(aggressorTown.getDebtBalance() +defenderTown.getDebtBalance()*0.25);
-        defenderTown.setDebtBalance(0d);
+        double capturedBalance = defenderTown.getAccount().getHoldingBalance() * 0.75;
+        aggressorTown.getAccount().setBalance(aggressorTown.getDebtBalance() + capturedBalance, "Victory in War");
+        defenderTown.getAccount().setBalance(0d, "Defeat in War");
         defenderTown.removeNation();
         defenderTown.setRuined(true);
 
@@ -575,36 +683,40 @@ public class WarProcess implements Listener {
             if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageDefender, aggressorTown.getName()))));
         }
         for (Resident resident : aggressors) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageAttacker, String.valueOf(capturedBalance)))));
         }
         HandlerList.unregisterAll(this);
-        FlagWar.warManager.FinishWar(war);
+        FlagWar.warManager.finishWar(war);
     }
+
 
     public void looseProcess() {
         for (Chunk chunk : aggressorWonChunks) {
             TownBlock block = new TownBlock(chunk.getX(), chunk.getZ(), Objects.requireNonNull(towny.getTownyWorld(chunk.getWorld())));
             transferOwnership(defenderTown, block);
         }
-//        for (Resident resident : defenders) { TODO: ПЛЕН для проигравших 25%
-//            if (resident.isMayor()) continue;
-//            try {
-//                resident.setTown(defenderTown);
-//            } catch (Exception e) {
-//                continue;
-//            }
+//    for (Resident resident : defenders) { TODO: PLEN for losing 25%
+//        if (resident.isMayor()) continue;
+//        try {
+//            resident.setTown(defenderTown);
+//        } catch (Exception e) {
+//            continue;
 //        }
-        defenderTown.setDebtBalance(defenderTown.getDebtBalance() + aggressorTown.getDebtBalance()*0.25);
+//    }
+        defenderTown.setDebtBalance(defenderTown.getDebtBalance() + aggressorTown.getDebtBalance() * 0.25);
         aggressorTown.setDebtBalance(0d);
         for (Resident resident : defenders) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageDefender, aggressorTown.getName())))); //TODO: сообщения проигравшим
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.winMessageDefender, aggressorTown.getName())))); //TODO: messages for the losers
         }
         for (Resident resident : aggressors) {
-            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageAttacker, String.valueOf(defenderTown.getDebtBalance()*0.25)))));
+            if (resident.isOnline()) resident.sendMessage(Component.text(Messaging.formatForString(Messaging.parsePlaceholders(Messages.lostMessageAttacker, String.valueOf(defenderTown.getDebtBalance() * 0.25)))));
         }
         HandlerList.unregisterAll(this);
-        FlagWar.warManager.FinishWar(war);
+        FlagWar.warManager.finishWar(war);
+
     }
+
+
 
     public void updateSpawnChunk() {
         int range = this.initialSize - aggressorWonChunks.size();
@@ -668,17 +780,17 @@ public class WarProcess implements Listener {
         startScheduledMessage(respawnEvent.getPlayer());
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerJoinEvent(PlayerJoinEvent joinEvent) {
         Resident resident = towny.getResident(joinEvent.getPlayer());
         if (!participants.contains(resident)) return;
-        online.add(joinEvent.getPlayer());
+        online.add(joinEvent.getPlayer().getName());
         if (aggressors.contains(resident)) {
             String message;
             if (wasOnline.contains(joinEvent.getPlayer())) message = Messaging.formatForString(Messages.returnBattleSubTitle);
             else message = Messaging.formatForString(Messages.teleportBattleMessage);
             // Schedule teleport after 5 minutes if not returned
-            BukkitTask task = new BukkitRunnable() {
+            BukkitRunnable task = new BukkitRunnable() {
                 @Override
                 public void run() {
                     if (joinEvent.getPlayer().isOnline()) {
@@ -686,8 +798,8 @@ public class WarProcess implements Listener {
                         joinEvent.getPlayer().sendTitle(Messaging.formatForString(Messages.returnBattleTitle), message, 10, 140, 20);
                     }
                 }
-            }.runTaskLater(FlagWar.getInstance(), 20 * 60 * 5); // 5 minutes in ticks
-
+            };
+            task.runTaskLater(FlagWar.getInstance(), 20 * 60 * 5); // 5 minutes in ticks
             teleportTasks.put(joinEvent.getPlayer(), task);
         } else if (defenders.contains(resident)) {
             joinEvent.getPlayer().sendTitle(Messaging.formatForString(Messages.joinNotificationTitle), Messaging.formatForString(Messages.joinNotificationSubTitle), 10, 140, 20);
@@ -723,6 +835,7 @@ public class WarProcess implements Listener {
         }
         if ((isSpawnCaptured && (double) aggressorWonChunks.size() / this.initialSize >= 0.5) || ((double) aggressorWonChunks.size() / this.initialSize >= 0.75)) {
             winProcess();
+            bossBarManager.clearBossBars();
             return;
         }
         scanSurround(chunk);
@@ -789,5 +902,21 @@ public class WarProcess implements Listener {
 
     public Set<Chunk> getWarChunks() {
         return warChunks;
+    }
+
+
+
+    public double calculateCapitulationPercentage() {
+        double captured = (double) aggressorWonChunks.size() / this.initialSize;
+        if (isSpawnCaptured) return Math.min(captured * 2, 1)*100;
+        return Math.min(captured * (1/0.75), 1)*100;
+    }
+
+
+    private double calculateProgress() {
+        // Example of progress calculation - replace with your logic
+        double totalSize = this.initialSize; // Replace with actual total size
+        double currentSize = aggressorWonChunks.size(); // Replace with actual current size
+        return currentSize / totalSize;
     }
 }

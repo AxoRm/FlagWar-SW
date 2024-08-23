@@ -58,10 +58,10 @@ public class PreWarProcess implements Listener {
         }
     }
 
-    private void scheduleNotification(Player player, String message, ZonedDateTime notificationTime, ZonedDateTime now) {
+    private void scheduleNotification(Player player, String message, ZonedDateTime notificationTime, ZonedDateTime now, boolean attacker) {
         long delay = ChronoUnit.SECONDS.between(now, notificationTime);
         if (delay >= 0) {
-            scheduler.schedule(() -> sendNotificationToPlayer(player, message, false), delay, TimeUnit.SECONDS);
+            scheduler.schedule(() -> sendNotificationToPlayer(player, message, attacker), delay, TimeUnit.SECONDS);
         }
     }
 
@@ -106,7 +106,7 @@ public class PreWarProcess implements Listener {
                 // Send action bar message
                 player.sendActionBar(Messaging.formatForString(message));
                 // Send title message
-                player.sendTitle(Messaging.formatForString(attacker? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 140, 20);
+                player.sendTitle(Messaging.formatForString(attacker ? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 140, 20);
                 // Send chat message
                 player.sendMessage(Messaging.formatForString(message));
             }
@@ -117,7 +117,7 @@ public class PreWarProcess implements Listener {
         // Send action bar message
         player.sendActionBar(Messaging.formatForString(message));
         // Send title message
-        player.sendTitle(Messaging.formatForString(attacker? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 140, 20);
+        player.sendTitle(Messaging.formatForString(attacker ? Messages.attackerNotificationTitle : Messages.victimNotificationTitle), Messaging.formatForString(message), 10, 140, 20);
         // Send chat message
         player.sendMessage(Messaging.formatForString(message));
     }
@@ -131,11 +131,11 @@ public class PreWarProcess implements Listener {
         if (town == null) return;
         if (war.attacker.equals(town)) {
             String message = Messaging.parsePlaceholders(Messages.timeLeftMessage, war.victim.getName(), getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime)));
-            scheduleNotification(player, message, now.plusSeconds(20), now);
+            scheduleNotification(player, message, now.plusSeconds(20), now, true);
         }
         if (war.victim.equals(town)) {
             String message = Messaging.parsePlaceholders(Messages.timeLeftMessage, war.attacker.getName(), getTimeFormattedMessage(ChronoUnit.SECONDS.between(now, warTime)));
-            sendNotificationToPlayer(player, message, true);
+            scheduleNotification(player, message, now.plusSeconds(20), now, false);
         }
     }
 }

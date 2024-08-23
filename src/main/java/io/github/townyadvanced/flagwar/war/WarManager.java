@@ -45,7 +45,8 @@ public class WarManager {
         if (town == null) return null;
         for (Map.Entry<NewWar, WarProcess> entry : wars.entrySet()) {
             Town attacker = entry.getKey().getAttacker();
-            if (!attacker.equals(town)) continue;
+            Town victim = entry.getKey().getVictim();
+            if (!attacker.equals(town) && !victim.equals(town)) continue;
             return entry.getValue();
         }
         return null;
@@ -116,7 +117,8 @@ public class WarManager {
     }
 
 
-    public void FinishWar(NewWar war) {
+    public void finishWar(NewWar war) {
         wars.remove(war);
+        SQLiteStorage.deleteNewWar(war);
     }
 }

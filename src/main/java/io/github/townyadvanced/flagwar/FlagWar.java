@@ -131,12 +131,7 @@ public class FlagWar extends JavaPlugin {
         messages.reload();
 
         System.out.println(Messages.unknownTown);
-        storage = new SQLiteStorage("database.db", new BukkitRunnable() {
-            @Override
-            public void run() {
-                storage.initDatabase();
-            }
-        }, this);
+        storage = new SQLiteStorage("database.db", this);
         try {
             final Field bukkitCommandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
             bukkitCommandMap.setAccessible(true);
