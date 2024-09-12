@@ -58,14 +58,12 @@ public class SQLiteStorage {
 
     public void initDatabase() {
         try {
-            System.out.println("here");
             PreparedStatement createNewWarsTableStatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `newWars` (`attacker` TEXT NOT NULL, `victim` TEXT NOT NULL, `year` int NOT NULL, `month` int NOT NULL, `day` int NOT NULL, `hour` int NOT NULL);");
             createNewWarsTableStatement.execute();
 
             ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM `newWars`");
             Map<String, String> toDelete = new HashMap<>();
             while (resultSet.next()) {
-                System.out.println("Смартфон vivo");
                 Town attacker = TownyAPI.getInstance().getTown(resultSet.getString("attacker"));
                 Town victim = TownyAPI.getInstance().getTown(resultSet.getString("victim"));
                 int year = resultSet.getInt("year");
@@ -80,7 +78,6 @@ public class SQLiteStorage {
 
                 newWars.add(new NewWar(attacker, victim, year, month, day, hour));
             }
-            System.out.println("here");
             for (Map.Entry<String, String> warEntry : toDelete.entrySet()) {
 
                 String attacker = warEntry.getKey();
@@ -92,7 +89,6 @@ public class SQLiteStorage {
 
                 deleteUnresolvedStatement.execute();
             }
-            System.out.println("here");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
