@@ -45,8 +45,6 @@ abstract public class AbstractConfig {
         configuration = YamlConfiguration.loadConfiguration(configFile);
         configuration.options().header(getHeader());
 
-        System.out.println("New configuration file: " + newFile);
-
         if (newFile) {
             save();
         } else loadData();
@@ -142,9 +140,6 @@ abstract public class AbstractConfig {
     }
 
     Object deserialize(Class<?> type, Object v) {
-        System.out.println(v);
-        System.out.println(v.getClass());
-
         if (v instanceof ConfigurationSection) {
             try {
                 return type.getMethod("deserialize", ConfigurationSection.class).invoke(null, (ConfigurationSection) v);
