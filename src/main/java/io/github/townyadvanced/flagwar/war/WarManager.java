@@ -17,15 +17,12 @@ public class WarManager {
     HashMap<NewWar, WarProcess> wars = new HashMap<>();
 
     public WarManager() {
-        System.out.println("war manager initialazation");
         timedWars = SQLiteStorage.newWars;
-        System.out.println("timed war list: " + timedWars.size());
         for (NewWar war : timedWars) {
             startPreWarProcess(war);
         }
     }
     public void startPreWarProcess(NewWar war) {
-        System.out.println("starting pre war");
         map.put(war, new PreWarProcess(war));
         SQLiteStorage.saveNewWar(war);
     }
