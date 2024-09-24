@@ -37,12 +37,10 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.temporal.TemporalField;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -52,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 public class WarProcess implements Listener {
     TownyAPI towny = TownyAPI.getInstance();
     ZonedDateTime startTime;
-    int respawns = 0;
 
     public int currentHour = 0;
 
@@ -60,7 +57,6 @@ public class WarProcess implements Listener {
     public int defendersActiveFlags = 0;
     private int rotationIndex = 0;
     private BossBarManager bossBarManager;
-    private List<Long> nextCheckTimes;
     ZonedDateTime nextCheckTime;
     Town aggressorTown;
 
@@ -102,9 +98,6 @@ public class WarProcess implements Listener {
     List<Resident> mayorsDef = new ArrayList<>();
     List<String> playerParticipants;
 
-    private int attackerMessageIndex = 0;
-    private int defenderMessageIndex = 0;
-
     public Set<Chunk> getAllChunks() {
         return allChunks;
     }
@@ -131,10 +124,6 @@ public class WarProcess implements Listener {
     Chunk newSpawnChunk;
     ArrayList<String> online;
     List<String> wasOnline;
-    String warAggressorPrefix = "&c◆";
-    String warAggressorPostfix = "&c◆";
-    String warDefenderPrefix = "&9■";
-    String warDefenderPostfix = "&9■";
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Map<Player, BukkitRunnable> teleportTasks = new HashMap<>();
     private final Map<Player, BukkitRunnable> notificationTasks = new HashMap<>();
@@ -147,7 +136,7 @@ public class WarProcess implements Listener {
         this.defenderTown = war.victim;
         this.aggressorTown = war.attacker;
         initialSize = defenderTown.getTownBlocks().size();
-        startTime = war.warTime;
+        startTime = ZonedDateTime.now( ZoneId.of("GMT+3"));
         this.aggressors = new ArrayList<>(aggressorTown.getResidents());
         this.defenders = new ArrayList<>(defenderTown.getResidents());
 
@@ -198,7 +187,7 @@ public class WarProcess implements Listener {
             int finalHour = hour;
             scheduler.schedule(() -> handleWarFinish(finalHour), hour, TimeUnit.HOURS);
         }
-        BossBarManager bossBar = new BossBarManager(this);
+        bossBarManager = new BossBarManager(this);
     }
 
     private void handleWarFinish(int x) {
@@ -297,7 +286,7 @@ public class WarProcess implements Listener {
     }
 
     public void summonAllies(Player player) { //TODO: реализовать механику союзников
-        if (playerAggressors.contains(player)) {
+        if (playerAggressors.contains(player.getName())) {
             if (!aggressorTown.hasNation()) return;
             try {
                 aggressorTown.getNation().getTowns().forEach(town -> {
@@ -308,7 +297,7 @@ public class WarProcess implements Listener {
                 throw new RuntimeException(e);
             }
         }
-        if (playerAggressors.contains(player)) {
+        if (playerAggressors.contains(player.getName())) {
             if (!defenderTown.hasNation()) return;
             try {
                 defenderTown.getNation().getTowns().forEach(town -> {
@@ -375,7 +364,6 @@ public class WarProcess implements Listener {
     }
 
     public String getStatus(Town town) {
-        boolean isAggressor = town.equals(aggressorTown);
         int totalChunks = warChunks.size();
         int capturedChunks = aggressorWonChunks.size();
         double capitulationThreshold = isSpawnCaptured ? 0.5 : 0.75;
@@ -413,10 +401,10 @@ public class WarProcess implements Listener {
         hours = hours % 24;
 
         StringBuilder time = new StringBuilder();
-        if (days > 0) time.append(days).append("d ");
-        if (hours > 0 || days > 0) time.append(hours).append("h ");
-        if (mins > 0 || hours > 0 || days > 0) time.append(mins).append("m ");
-        time.append(secs).append("s");
+        if (days > 0) time.append(days).append("д ");
+        if (hours > 0 || days > 0) time.append(hours).append("ч ");
+        if (mins > 0 || hours > 0 || days > 0) time.append(mins).append("м ");
+        time.append(secs).append("с");
 
         return time.toString();
     }
@@ -787,7 +775,7 @@ public class WarProcess implements Listener {
         online.add(joinEvent.getPlayer().getName());
         if (aggressors.contains(resident)) {
             String message;
-            if (wasOnline.contains(joinEvent.getPlayer())) message = Messaging.formatForString(Messages.returnBattleSubTitle);
+            if (wasOnline.contains(joinEvent.getPlayer().getName())) message = Messaging.formatForString(Messages.returnBattleSubTitle);
             else message = Messaging.formatForString(Messages.teleportBattleMessage);
             // Schedule teleport after 5 minutes if not returned
             BukkitRunnable task = new BukkitRunnable() {
@@ -809,11 +797,12 @@ public class WarProcess implements Listener {
     @EventHandler
     public void onCellWonEvent(CellWonEvent cellWonEvent) throws TownyException {
         Player player = cellWonEvent.getCellOwner();
-        if (!playerParticipants.contains(player)) return;
+        if (!playerParticipants.contains(player.getName())) return;
         Cell cell = cellWonEvent.getCellUnderAttack();
         World world = Bukkit.getWorld(cell.getWorldName());
         int chunkX = cell.getX();
         int chunkZ = cell.getZ();
+        assert world != null;
         Chunk chunk = world.getChunkAt(chunkX, chunkZ);
         Town town = towny.getTown(player);
         if (town == null) return;
@@ -843,15 +832,16 @@ public class WarProcess implements Listener {
     @EventHandler
     public void onQuitEvent(PlayerQuitEvent quitEvent) {
         Player player = quitEvent.getPlayer();
-        if (online.contains(player)) {
-            online.remove(player);
-            Objects.requireNonNull(towny.getTown(player)).getMayor().getPlayer().sendMessage(Messaging.formatForComponent(Messaging.parsePlaceholders(Messages.leaveBattleMessage, player.getName())));
+        String playerName = player.getName();
+        if (online.contains(playerName)) {
+            online.remove(playerName);
+            Objects.requireNonNull(Objects.requireNonNull(towny.getTown(player)).getMayor().getPlayer()).sendMessage(Messaging.formatForComponent(Messaging.parsePlaceholders(Messages.leaveBattleMessage, player.getName())));
         }
     }
 
     @EventHandler
     public void onCellAttackEvent(CellAttackEvent event) {
-        if (!playerParticipants.contains(event.getPlayer())) return;
+        if (!playerParticipants.contains(event.getPlayer().getName())) return;
         World world = Bukkit.getWorld(event.getData().getWorldName());
         if (world == null) return;
         Chunk attacked = world.getChunkAt(event.getData().getX(), event.getData().getZ());
@@ -908,15 +898,7 @@ public class WarProcess implements Listener {
 
     public double calculateCapitulationPercentage() {
         double captured = (double) aggressorWonChunks.size() / this.initialSize;
-        if (isSpawnCaptured) return Math.min(captured * 2, 1)*100;
-        return Math.min(captured * (1/0.75), 1)*100;
-    }
-
-
-    private double calculateProgress() {
-        // Example of progress calculation - replace with your logic
-        double totalSize = this.initialSize; // Replace with actual total size
-        double currentSize = aggressorWonChunks.size(); // Replace with actual current size
-        return currentSize / totalSize;
+        if (isSpawnCaptured) return Math.min(captured / 0.5, 1)*100;
+        return Math.min(captured / 0.75, 1)*100;
     }
 }
